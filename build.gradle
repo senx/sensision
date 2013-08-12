@@ -1,0 +1,310 @@
+//
+//   Copyright 2016  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+buildscript {
+  repositories {
+    mavenCentral()
+    jcenter()
+  }
+
+  dependencies {
+    classpath group: 'net.sf.proguard', name: 'proguard-gradle', version: '4.9'
+    //classpath 'org.ajoberstar:gradle-git:0.2.3'
+    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.4'
+  }
+}
+
+// Gets the version name from the latest Git tag
+// if no commit occurs -> the name of the tag likes 0.0.1
+// if commit occurs -> 0.0.1-12-aabb1122 (number of commits + version number)
+
+def getVersionName = { ->
+  def stdout = new ByteArrayOutputStream()
+  exec {
+    commandLine 'git', 'describe', '--tags'
+    standardOutput = stdout
+  }
+  return stdout.toString().trim()
+}
+
+subprojects {
+  apply plugin: 'java';
+  apply plugin: 'eclipse';
+  apply plugin: 'maven';
+  apply plugin: 'maven-publish';
+  apply plugin: 'com.jfrog.bintray'
+
+  configurations {
+    tools
+    deployerJars
+    sensisionlib
+  }
+
+  repositories {
+    mavenCentral()
+    maven {
+      url "http://127.0.0.1:40080/m2"
+    }
+    maven {
+      url "https://repository.apache.org/service/local/repositories/releases/content"
+    }
+  }
+
+  //
+  // Java Compilation flags
+  //
+
+  compileJava {
+    //options.compilerArgs << '-g:none'
+    options.compilerArgs << '-source'
+    options.compilerArgs << '1.5'
+    options.compilerArgs << '-target'
+    options.compilerArgs << '1.5'
+  }
+
+  //
+  // Project dependencies
+  //
+
+  dependencies {
+    // Jetty 9 is compiled using JDK7 cf http://webtide.intalio.com/2012/09/jetty-9-features/
+    //compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.0.5.v20130815'
+    compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '8.1.12.v20130726'
+    compile group: 'junit', name: 'junit', version: '4.4'
+    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.3.9'
+    // Hadoop for SensisionSink
+    compile group: 'org.apache.hadoop', name: 'hadoop-common', version: '2.5.0'
+    //compile group: 'commons-configuration', name: 'commons-configuration', version: '1.6'
+    // Yammer Metrics for SensisionReporter
+    compile group: 'com.yammer.metrics', name: 'metrics-core', version: '2.2.0'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.12'
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.12'
+    // Kafka
+    compile("org.apache.kafka:kafka_2.9.2:0.8.1") {
+      exclude module: 'jms'
+      exclude module: 'jmxtools'
+      exclude module: 'jmxri'
+    }
+
+    tools files('tools/jarjar-1.4.jar')
+
+    //UPLOAD ARTIFACTS THROUGH SSH
+    deployerJars 'org.apache.maven.wagon:wagon-ssh-external:2.8'
+  }
+}
+
+project(':sensision-lib') {
+  version getVersionName()
+
+  sourceSets {
+    main {
+      java {
+        srcDirs '../src/main/java'
+      }
+    }
+  }
+
+  jar {
+    manifest {
+      attributes("Premain-Class": "io.warp10.sensision.SensisionJMXAgent")
+      attributes("Implementation-Title": "sensision-lib")
+      attributes("Implementation-Version": version)
+    }
+  }
+
+  task sensisionLib(type: Jar, dependsOn: jar) {
+    inputs.files jar.archivePath
+    appendix 'jarjar'
+
+    manifest {
+      attributes("Premain-Class": "io.warp10.sensision.SensisionJMXAgent")
+      attributes("Implementation-Title": "sensision-lib")
+      attributes("Implementation-Version": version)
+    }
+
+    doLast {
+      manifest.writeTo("${buildDir}/MANIFEST.MF")
+      project.ant {
+        taskdef name: "jarjar", classname: "com.tonicsystems.jarjar.JarJarTask", classpath: configurations.tools.asPath
+        jarjar(jarfile: archivePath, manifest: "${buildDir}/MANIFEST.MF") {
+          zipfileset(src: jar.archivePath) {
+            include(name: 'io/warp10/sensision/Sensision**')
+            include(name: 'io/warp10/sensision/hadoop/**')
+            include(name: 'io/warp10/sensision/kafka/**')
+            include(name: 'io/warp10/sensision/yammermetrics/**')
+          }
+
+          //
+          // Iterate over .jar files
+          //
+          configurations.runtime.files.findAll {file ->
+            for (name in ['jetty-', 'javax.servlet-', 'servlet-api-']) {
+              if (file.name.startsWith(name)) { return true; }
+            }
+            return false;
+          }.each {jarjarFile ->
+            zipfileset(src: jarjarFile) {
+              exclude(name: 'META-INF/**')
+              exclude(name: 'about.html')
+              exclude(name: 'about_files/**')
+              exclude(name: 'plugin.properties')
+              exclude(name: 'jetty-dir.css')
+            }
+          }
+
+          rule pattern: "io.warp10.sensision.**", result: "@0"
+          rule pattern: "javax.management.**", result: "@0"
+          rule pattern: "javax.servlet.**", result: "io.warp10.sensision.jarjar.@0"
+          rule pattern: "javax.**", result: "@0"
+          rule pattern: "org.apache.hadoop.**", result: "@0"
+          rule pattern: "org.apache.commons.**", result: "@0"
+          rule pattern: "org.**", result: "io.warp10.sensision.jarjar.@0"
+        }
+      }
+    }
+  }
+
+  publishing {
+    publications {
+      sensisionlib(MavenPublication) {
+        artifact sensisionLib
+        groupId 'io.warp10'
+        artifactId 'sensision'
+        version getVersionName()
+      }
+    }
+  }
+  bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+    publications = [ 'sensisionlib' ]
+
+    pkg {
+      repo = 'maven'
+      name = 'sensision'
+      licenses = ['Apache-2.0']
+      vcsUrl = 'https://github.com/cityzendata/sensision.git'
+      version {
+        name = getVersionName()
+        released  = new Date()
+        vcsTag = getVersionName()
+      }
+    }
+  }
+}
+
+project(':sensision-service') {
+
+  compileJava {
+    //options.compilerArgs << '-g:none'
+    options.compilerArgs << '-source'
+    options.compilerArgs << '1.5'
+    options.compilerArgs << '-target'
+    options.compilerArgs << '1.5'
+  }
+
+  sourceSets {
+    main {
+      java {
+        srcDirs '../src/main/java'
+      }
+    }
+  }
+
+  task sensisionService(type: Jar, dependsOn: jar) {
+    inputs.files jar.archivePath
+    appendix = getVersionName()
+
+    manifest {
+      attributes("Main-Class": "io.warp10.sensision.Main")
+      attributes("Implementation-Title": "sensision-service")
+      attributes("Implementation-Version": appendix)
+    }
+
+    doLast {
+      manifest.writeTo("${buildDir}/MANIFEST.MF")
+      project.ant {
+        taskdef name: "jarjar", classname: "com.tonicsystems.jarjar.JarJarTask", classpath: configurations.tools.asPath
+        ext.sensisionServiceJar = archivePath
+        jarjar(jarfile: archivePath, manifest: "${buildDir}/MANIFEST.MF") {
+          zipfileset(src: jar.archivePath) {
+            include(name: 'io/warp10/sensision/**')
+          }
+
+          //
+          // Iterate over .jar files
+          //
+          configurations.runtime.files.findAll {file ->
+            for (name in ['jetty-', 'javax.servlet-', 'servlet-api-', 'groovy-all-', 'slf4j-api', 'slf4j-simple']) {
+              if (file.name.startsWith(name)) { return true; }
+            }
+            return false;
+          }.each {jarjarFile ->
+            zipfileset(src: jarjarFile) {
+              // WARNING: MUST keep META-INF/DgmInfo which is needed by Groovy
+              exclude(name: 'META-INF/*.DSA')
+              exclude(name: 'META-INF/*.RSA')
+              exclude(name: 'about.html')
+              exclude(name: 'about_files/**')
+              exclude(name: 'plugin.properties')
+              exclude(name: 'jetty-dir.css')
+            }
+          }
+
+          rule pattern: "io.warp10.sensision.**", result: "@0"
+          rule pattern: "javax.management.**", result: "@0"
+          rule pattern: "groovy**", result: "@0"
+          rule pattern: "org.codehaus.groovy.**", result: "@0"
+          rule pattern: "org.w3c.**", result: "@0"
+          rule pattern: "org.**", result: "io.warp10.sensision.jarjar.@0"
+          rule pattern: "javax.**", result: "io.warp10.sensision.jarjar.@0"
+        }
+      }
+    }
+  }
+
+  task createTarArchive(type: Exec, dependsOn: sensisionService) {
+    workingDir = '.'
+    commandLine = [ '../src/main/shell/package.sh', getVersionName() ]
+  }
+
+  bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+
+    filesSpec {
+      from 'build/libs'
+      include 'sensision-service-' + getVersionName() + '.tar.gz'
+      into '.'
+    }
+
+    pkg {
+      repo = 'generic'
+      name = 'sensision-service'
+      licenses = ['Apache-2.0']
+      vcsUrl = 'https://github.com/cityzendata/sensision.git'
+      version {
+        name = getVersionName()
+        released  = new Date()
+        vcsTag = getVersionName()
+      }
+    }
+  }
+
+  bintrayUpload.dependsOn createTarArchive
+}

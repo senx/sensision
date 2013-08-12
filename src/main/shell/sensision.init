@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# sensision	Sensision metric collection service
+#
+# chkconfig: 2345 80 30
+# description: Sensision collects various metrics and moves them to Cityzen Data
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+VERSION=@VERSION@
+
+SENSISION_HOME=/opt/sensision-${VERSION}
+SENSISION_USER=sensision
+SENSISION_CONFIG=${SENSISION_HOME}/etc/sensision.conf
+SENSISION_JAR=${SENSISION_HOME}/bin/sensision-${VERSION}.jar
+SENSISION_HEAP=64m
+SENSISION_OPTS=-Dsensision.server.port=0
+export MALLOC_ARENA_MAX=1
+
+if [ "${JAVA_HOME}" = "" ]
+then
+  JAVA_HOME=/opt/java8
+fi
+
+start() {
+  if [ ! -h  "/var/run/sensision" ]; then
+    ln -s ${SENSISION_HOME}/data /var/run/sensision
+  fi
+  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -jar ${SENSISION_JAR} &"
+}
+
+stop() {
+  JAR=`basename ${SENSISION_JAR}`
+  kill `su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${JAR}|cut -f 1 -d' '"`
+}
+
+status() {
+  JAR=`basename ${SENSISION_JAR}`
+  ${JAVA_HOME}/bin/jps -l|grep ${JAR}
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+        status
+        ;;
+  *)
+	echo $"Usage: $0 {start|stop|status}"
+	exit 2
+esac
+
+exit $?

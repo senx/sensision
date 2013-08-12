@@ -1,0 +1,54 @@
+#!/bin/sh
+#
+# Bootstrap Sensision install
+#
+
+VERSION=@VERSION@
+
+#JAVA_HOME=/opt/java8
+
+#
+# WARP10 jar is required to use Worf
+#WARP10_JAR=
+#WARP10_CONF=
+
+SENSISION_HOME=/opt/sensision-@VERSION@
+
+# Fix permissions
+chmod 755 ${SENSISION_HOME}
+chmod 755 ${SENSISION_HOME}/bin
+chmod 755 ${SENSISION_HOME}/etc
+chmod 755 ${SENSISION_HOME}/data
+chmod 1733 ${SENSISION_HOME}/data/targets
+chmod 1733 ${SENSISION_HOME}/data/metrics
+chmod 700 ${SENSISION_HOME}/data/queued
+chmod -R 755 ${SENSISION_HOME}/scripts
+chmod 755 ${SENSISION_HOME}/bin/sensision.init
+chmod 755 ${SENSISION_HOME}/bin/sensision.bootstrap
+chmod 644 ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
+
+# Create user sensision
+if [ "`which useradd`" = "" ]
+then
+  adduser -D -s -H -h ${SENSISION_HOME} -s /bin/bash sensision
+else
+  useradd -d ${SENSISION_HOME} -M -r sensision
+fi
+
+# Fix ownership
+chown -R sensision:sensision ${SENSISION_HOME}
+
+# Fix symbolic links
+if [ -L /var/run/sensision ]
+then
+  rm /var/run/sensision
+fi
+ln -s ${SENSISION_HOME}/data /var/run/sensision
+ln -s ${SENSISION_HOME}/bin/sensision.init /etc/init.d/sensision
+
+if [ -f ${WARP10_CONF} ]
+then
+  su sensision -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -a io.warp10.sensision -ks ${WARP10_CONF} -puidg -t -ttl 3153600000000 ${SENSISION_HOME}/etc/sensision.template"
+else
+  echo "WARN: '${WARP10_CONF}' does not exist. Skip generation of sensision configuration."
+fi

@@ -1,0 +1,121 @@
+//
+//   Copyright 2016  Cityzen Data
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+//
+// Produces metrics about HA Proxy
+// @see http://groovy.codehaus.org/Process+Management
+//
+
+import java.io.PrintWriter;
+import static io.warp10.sensision.Utils.*;
+
+//
+// Ports per proc id
+//
+
+def ports = [
+  1: 9001,
+  2: 9002,
+  3: 9003,
+  4: 9004
+];
+
+File OUTFILE = getMetricsFile('haproxy-nproc');
+
+//
+// Open the file with a '.pending' suffix so it does not get picked up while we fill it
+//
+
+File outfile = OUTFILE;
+File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+
+PrintWriter pw = new PrintWriter(tmpfile);
+
+for(proc in ports.keySet()) {
+  //
+  // Run the desired process
+  //
+
+  def p = ('curl http://USER:PASSWORD@127.0.0.1:' + ports[proc] + '?;csv').execute()
+
+  //
+  // Consume its output
+  //
+
+  def out = new StringBuilder()
+  def err = new StringBuilder()
+  p.waitForProcessOutput(out, err)
+  def metrics=[]
+  def outputLines=[]
+  if (out) {
+    out.splitEachLine(',') { line -> outputLines.add(line) }
+
+    outputLines[0] = outputLines[0].collect { it -> it.replaceFirst(/\W*/,"") }
+    outputLines.eachWithIndex { line, count ->
+      if (count>0) {
+        metrics[count-1] = [outputLines[0],line].transpose().collectEntries { it }
+      }
+    }
+  }
+  //println metrics
+
+  //
+  // Common labels for all metrics
+  //
+
+  Map<String,String> commonLabels = [:];
+
+
+  //
+  // Output file
+  //
+
+  long now = System.currentTimeMillis() * 1000L;
+
+
+  useful_metrics = [
+    "scur":'haproxy.sessions.current', 
+    "stot": 'haproxy.sessions.total', 
+    "bin":'haproxy.bytes.in', 
+    "bout":'haproxy.bytes.out', 
+    "dreq":'haproxy.denied.requests', 
+    "dresp":'haproxy.denied.responses',
+    "ereq":'haproxy.error.request',
+    "econ":'haproxy.error.connection',
+    "eresp":'haproxy.error.response'
+  ]
+
+  metrics.each {metric ->
+    labels = [:];
+    labels.putAll(commonLabels);
+
+    labels["component"] = metric["pxname"]
+    labels["server"] = metric["svname"]
+    labels["proc"] = Integer.toString(proc)
+
+    for (m in useful_metrics) {          
+      storeMetric(pw, now, m.value, labels, (metric[m.key] != '')?metric[m.key].toLong():0)
+    }
+  }
+}
+
+try { if (null != pw) pw.close(); } catch (IOException ioe) {}
+
+//
+// Move file to final location
+//
+
+tmpfile.renameTo(outfile);
