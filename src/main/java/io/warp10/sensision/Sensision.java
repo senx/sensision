@@ -16,6 +16,8 @@
 
 package io.warp10.sensision;
 
+import io.warp10.sensision.FilePoller;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -795,11 +797,12 @@ public class Sensision {
           // End the name with a '.' so even if eventsSuffix is SENSISION_METRICS_SUFFIX it won't bother
           eventsFile = new File(new File(eventsDir), now + "." + uuid + (null != eventsSuffix ? ("." + eventsSuffix) : ""));
           
-          if (!eventsFile.canWrite()) {
+          try {
+            eventsWriter = new PrintWriter(eventsFile);
+          } catch (FileNotFoundException fnfe) {
             eventsFile = null;
             return;
           }
-          eventsWriter = new PrintWriter(eventsFile);
         }
         if (null != sb && null != eventsWriter) {
           eventsWriter.println(sb.toString());
