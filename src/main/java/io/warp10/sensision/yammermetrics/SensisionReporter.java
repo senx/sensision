@@ -108,7 +108,7 @@ public class SensisionReporter extends AbstractPollingReporter implements Iterab
   public Collection<Value> counterValues(MetricName name, Counter counter) throws Exception {    
     List<Value> values = new ArrayList<Value>();
     
-    long now = System.currentTimeMillis() * 1000L;
+    long now = System.currentTimeMillis() * Sensision.TIME_UNITS_PER_MS;
     
     Map<String,String> labels = new HashMap<String,String>();;
 
@@ -129,7 +129,7 @@ public class SensisionReporter extends AbstractPollingReporter implements Iterab
   public Collection<Value> gaugeValues(MetricName name, Gauge<?> gauge) throws Exception {
     List<Value> values = new ArrayList<Value>();
 
-    long now = System.currentTimeMillis() * 1000L;
+    long now = System.currentTimeMillis() * Sensision.TIME_UNITS_PER_MS;
     
     Map<String,String> labels = new HashMap<String,String>();;
 
@@ -155,7 +155,7 @@ public class SensisionReporter extends AbstractPollingReporter implements Iterab
   public Collection<Value> histogramValues(MetricName name, Histogram histogram) throws Exception {    
     List<Value> values = new ArrayList<Value>();
     
-    long now = System.currentTimeMillis() * 1000L;
+    long now = System.currentTimeMillis() * Sensision.TIME_UNITS_PER_MS;
     
     Map<String,String> labels = new HashMap<String,String>();;
 
@@ -191,7 +191,7 @@ public class SensisionReporter extends AbstractPollingReporter implements Iterab
   public Collection<Value> meterValues(MetricName name, Metered meter) throws Exception {
     List<Value> values = new ArrayList<Value>();
     
-    long now = System.currentTimeMillis() * 1000L;
+    long now = System.currentTimeMillis() * Sensision.TIME_UNITS_PER_MS;
     
     Map<String,String> labels = new HashMap<String,String>();;
 
@@ -218,7 +218,7 @@ public class SensisionReporter extends AbstractPollingReporter implements Iterab
   public Collection<Value> timerValues(MetricName name, Timer timer) throws Exception {    
     List<Value> values = new ArrayList<Value>();
     
-    long now = System.currentTimeMillis() * 1000L;
+    long now = System.currentTimeMillis() * Sensision.TIME_UNITS_PER_MS;
     
     Map<String,String> labels = new HashMap<String,String>();;
 

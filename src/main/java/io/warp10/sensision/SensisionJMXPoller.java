@@ -342,7 +342,7 @@ public class SensisionJMXPoller {
     StringBuilder sb = new StringBuilder();
     
     try {
-      sb.append(System.currentTimeMillis() * 1000L);
+      sb.append(System.currentTimeMillis() * Sensision.TIME_UNITS_PER_MS);
       sb.append("/");
       Sensision.addDefaultLocation(sb);
       sb.append("/");

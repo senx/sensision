@@ -69,7 +69,7 @@ public class Sensision {
   private static List<Iterable<Value>> providers = new ArrayList<Iterable<Value>>();
   
   public static final String SENSISION_DISABLE = "sensision.disable";
-  public static final String SENSISION_TIME_UNIT = "sensition.timeunit";
+  public static final String SENSISION_TIME_UNIT = "sensision.timeunit";
   public static final String SENSISION_INSTANCE = "sensision.instance";
   
   public static final String SENSISION_QUEUEMANAGER = "sensision.queuemanager";

@@ -67,7 +67,7 @@ public class SensisionSink implements MetricsSink {
       sb.append(this.prefix);
       sb.append(metric.name());
       String cls = sb.toString();
-      Sensision.set(cls, labels, record.timestamp() * 1000L, null, null, null,  metric.value(), ttl);
+      Sensision.set(cls, labels, record.timestamp() * Sensision.TIME_UNITS_PER_MS, null, null, null,  metric.value(), ttl);
     }
   }
 }
