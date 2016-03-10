@@ -6,7 +6,13 @@
 # description: Sensision collects various metrics and moves them to Cityzen Data
 
 # Source function library.
-. /etc/rc.d/init.d/functions
+if [ -e /etc/rc.d/init.d/functions ];
+then
+  . /etc/rc.d/init.d/functions
+elif [ -e /lib/lsb/init-functions ];
+then
+ . /lib/lsb/init-functions
+fi
 
 VERSION=@VERSION@
 
