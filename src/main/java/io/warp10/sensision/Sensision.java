@@ -141,6 +141,7 @@ public class Sensision {
   public static final String SENSISION_POLLING_HINT = "sensision.polling.hint";  
   public static final String SENSISION_POLLING_PERIOD = "sensision.polling.period";
   public static final String SENSISION_DUMP_PERIOD = "sensision.dump.period";
+  public static final String SENSISION_DUMP_CURRENTTS = "sensision.dump.currentts";
   public static final String SENSISION_DUMP_ONEXIT = "sensision.dump.onexit";
   public static final String SENSISION_CURATION_PERIOD = "sensision.curation.period";
   public static final String SENSISION_SERVER_PORT = "sensision.server.port";

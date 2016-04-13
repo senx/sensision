@@ -31,6 +31,8 @@ public class SensisionMetricsDumper extends Thread {
    */
   private long period;
       
+  private boolean useValueTS;
+  
   public SensisionMetricsDumper() {
     
     if (Sensision.disable) {
@@ -41,6 +43,12 @@ public class SensisionMetricsDumper extends Thread {
       this.period = Long.valueOf(System.getProperty(Sensision.SENSISION_DUMP_PERIOD));
     } catch (NumberFormatException nfe) {
       this.period = Sensision.DEFAULT_DUMP_PERIOD;        
+    }
+  
+    if ("true".equals(System.getProperty(Sensision.SENSISION_DUMP_CURRENTTS))) {
+      this.useValueTS = false;
+    } else {
+      this.useValueTS = true;
     }
     
     this.setDaemon(true);
@@ -109,6 +117,6 @@ public class SensisionMetricsDumper extends Thread {
   }
   
   public void dump(PrintWriter out) throws IOException {
-    Sensision.dump(out);
+    Sensision.dump(out, this.useValueTS);
   }
 }
