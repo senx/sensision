@@ -1,2 +1,13 @@
-build
-bin
+build/
+bin/
+.gradle/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+.project
+.classpath
+.metadata
+.settings/
+.idea/
+generated/
