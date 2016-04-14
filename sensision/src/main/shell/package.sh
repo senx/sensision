@@ -24,18 +24,18 @@ mkdir -p ${SENSISION_HOME}/scripts/60000
 
 # Copy scripts
 # zk, haproxy,... are disabled by default: do not work with a standalone instance of Warp 10
-cp ../../src/main/groovy/*.groovy ${SENSISION_HOME}/scripts/60000
-cp ../../src/main/shell/zk-sensision.sh ${SENSISION_HOME}/scripts
+cp ../src/main/groovy/*.groovy ${SENSISION_HOME}/scripts/60000
+cp ../src/main/shell/zk-sensision.sh ${SENSISION_HOME}/scripts
 
 # Copy init and startup scripts
-sed -e "s/@VERSION@/${VERSION}/g" ../../src/main/shell/sensision.init > ${SENSISION_HOME}/bin/sensision.init
-sed -e "s/@VERSION@/${VERSION}/g" ../../src/main/shell/sensision.bootstrap > ${SENSISION_HOME}/bin/sensision.bootstrap
+sed -e "s/@VERSION@/${VERSION}/g" ../src/main/shell/sensision.init > ${SENSISION_HOME}/bin/sensision.init
+sed -e "s/@VERSION@/${VERSION}/g" ../src/main/shell/sensision.bootstrap > ${SENSISION_HOME}/bin/sensision.bootstrap
 
 # Copy template configuration
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/sensision.template > ${SENSISION_HOME}/etc/sensision.template
 
 # Copy jar
-cp ../build/libs/sensision-service-${VERSION}.jar ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
+cp ../build/libs/sensision-service-full-${VERSION}.jar ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
 
 # Fix permissions
 chmod 755 ${SENSISION_HOME}/bin
