@@ -1,3 +1,7 @@
+import java.text.DateFormat
+import java.text.ParseException
+import java.text.SimpleDateFormat
+
 //
 //   Copyright 2016  Cityzen Data
 //
@@ -252,9 +256,9 @@ project(':sensision') {
       licenses = ['Apache-2.0']
       vcsUrl = 'https://github.com/cityzendata/sensision.git'
       version {
-        name = version
-        released  = new Date()
-        vcsTag = version
+        name = getVersionName()
+        released = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())
+        vcsTag = getVersionName()
       }
     }
   }
@@ -274,11 +278,18 @@ project(':sensision-lib') {
       attributes("Implementation-Title": archivesBaseName)
       attributes("Implementation-Version": version)
     }
+
+    from project(":sensision").sourceSets.main.output
+      include 'io/warp10/sensision/Sensision**'
+      include 'io/warp10/sensision/hadoop/**'
+      include 'io/warp10/sensision/kafka/**'
+      include 'io/warp10/sensision/yammermetrics/**'
+
   }
 
   task sensisionLib(type: Jar, dependsOn: jar) {
     inputs.files jar.archivePath
-    appendix 'jarjar'
+    appendix 'lib'
 
     manifest {
       attributes("Premain-Class": "io.warp10.sensision.SensisionJMXAgent")
@@ -290,7 +301,7 @@ project(':sensision-lib') {
       manifest.writeTo("${buildDir}/MANIFEST.MF")
       project.ant {
         taskdef name: "jarjar", classname: "com.tonicsystems.jarjar.JarJarTask", classpath: configurations.tools.asPath
-        jarjar(jarfile: jar.archivePath, manifest: "${buildDir}/MANIFEST.MF") {
+        jarjar(jarfile: archivePath, manifest: "${buildDir}/MANIFEST.MF") {
 
           zipfileset(src: jar.archivePath) {
             include(name: 'io/warp10/sensision/Sensision**')
@@ -335,7 +346,7 @@ project(':sensision-lib') {
         artifact sensisionLib
         groupId 'io.warp10'
         artifactId archivesBaseName
-        version getVersionName()
+        version version
       }
     }
   }
@@ -367,7 +378,7 @@ project(':sensision-lib') {
       vcsUrl = 'https://github.com/cityzendata/sensision.git'
       version {
         name = getVersionName()
-        released  = new Date()
+        released = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())
         vcsTag = getVersionName()
       }
     }
