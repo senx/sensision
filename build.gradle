@@ -41,6 +41,24 @@ def getVersionName = { ->
   return stdout.toString().trim()
 }
 
+//
+// Check local git repo is synced with the remote
+//
+def isGitRepoSynced() {
+  def stdout = new ByteArrayOutputStream()
+  exec {
+    commandLine 'git', 'status', '-u', 'no', '--porcelain'
+    standardOutput = stdout
+  }
+
+  //
+  // Exclude gradle.properties
+  //
+  String val = stdout.toString().replaceAll(/.*\/gradle.properties\n/, '')
+
+  return (0 == val.trim().size())
+}
+
 subprojects {
   apply plugin: 'java';
   apply plugin: 'idea';
@@ -69,15 +87,11 @@ subprojects {
     }
 
     gradle.taskGraph.whenReady { graph ->
-      println "building warp10 version=$version"
+      println "building sensision version=$version"
       if (graph.hasTask(uploadArchives) || graph.hasTask(bintrayUpload)) {
-        //if (!(version ==~ /\d+\.\d+\.\d+\-\d+\-\w+/)) {
-        //    throw new GradleException("Cannot upload archive: version ${version} is not correct (X.X.X-X-X)")
-        //}
-
-        //if (!isGitRepoSynced()) {
-          //throw new GradleException("Cannot upload archive: local repo contains uncommited files (git status -u no --porcelain)")
-       //}
+        if (!isGitRepoSynced()) {
+          throw new GradleException("Cannot upload archive: local repo contains uncommited files (git status -u no --porcelain)")
+       }
       }
 
      }
