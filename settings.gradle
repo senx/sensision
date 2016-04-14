@@ -1,1 +1,1 @@
-include 'sensision-lib', 'sensision-service'
+include 'sensision-lib', 'sensision'

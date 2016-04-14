@@ -1,3 +1,7 @@
+import java.text.DateFormat
+import java.text.ParseException
+import java.text.SimpleDateFormat
+
 //
 //   Copyright 2016  Cityzen Data
 //
@@ -16,15 +20,12 @@
 
 buildscript {
   repositories {
-    mavenCentral()
     jcenter()
   }
+}
 
-  dependencies {
-    classpath group: 'net.sf.proguard', name: 'proguard-gradle', version: '4.9'
-    //classpath 'org.ajoberstar:gradle-git:0.2.3'
-    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.4'
-  }
+plugins {
+  id "com.jfrog.bintray" version "1.4"
 }
 
 // Gets the version name from the latest Git tag
@@ -40,17 +41,65 @@ def getVersionName = { ->
   return stdout.toString().trim()
 }
 
+//
+// Check local git repo is synced with the remote
+//
+def isGitRepoSynced() {
+  def stdout = new ByteArrayOutputStream()
+  exec {
+    commandLine 'git', 'status', '-u', 'no', '--porcelain'
+    standardOutput = stdout
+  }
+
+  //
+  // Exclude gradle.properties
+  //
+  String val = stdout.toString().replaceAll(/.*\/gradle.properties\n/, '')
+
+  return (0 == val.trim().size())
+}
+
 subprojects {
   apply plugin: 'java';
+  apply plugin: 'idea';
   apply plugin: 'eclipse';
   apply plugin: 'maven';
   apply plugin: 'maven-publish';
   apply plugin: 'com.jfrog.bintray'
 
+  group = 'io.warp10'
+
+  ext{
+    stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGEING_USER')
+    stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGEING_URL')
+
+    if (null == stagingUser || null == stagingURL) {
+      stagingUser = ''
+      stagingURL = ''
+    }
+
+    sensisionLibPublishUser = project.hasProperty('sensisionLibPublishUser') ? project.property('sensisionLibPublishUser') : System.getenv('SENSISIONLIBPUBLISH_USER')
+    sensisionLibPublishURL = project.hasProperty('sensisionLibPublishURL') ? project.property('sensisionLibPublishURL') : System.getenv('SENSISIONLIBPUBLISH_URL')
+
+    if (null == sensisionLibPublishUser || null == sensisionLibPublishURL) {
+      sensisionLibPublishUser = ''
+      sensisionLibPublishURL = ''
+    }
+
+    gradle.taskGraph.whenReady { graph ->
+      println "building sensision version=$version"
+      if (graph.hasTask(uploadArchives) || graph.hasTask(bintrayUpload)) {
+        if (!isGitRepoSynced()) {
+          throw new GradleException("Cannot upload archive: local repo contains uncommited files (git status -u no --porcelain)")
+       }
+      }
+
+     }
+  }
+
   configurations {
     tools
     deployerJars
-    sensisionlib
   }
 
   repositories {
@@ -76,7 +125,7 @@ subprojects {
   }
 
   //
-  // Project dependencies
+  // Global dependencies
   //
 
   dependencies {
@@ -104,34 +153,51 @@ subprojects {
     //UPLOAD ARTIFACTS THROUGH SSH
     deployerJars 'org.apache.maven.wagon:wagon-ssh-external:2.8'
   }
+
+  // DEPLOY ON MAVEN REPO WITH SCP
+  uploadArchives {
+    repositories {
+      repositories.mavenDeployer {
+        configuration = configurations.deployerJars
+        uniqueVersion = false
+
+        repository(url: "scpexe://${stagingURL}") {
+          authentication(userName: "${stagingUser}")
+        }
+      }
+    }
+  }
+
 }
 
-project(':sensision-lib') {
+project(':sensision') {
   version getVersionName()
+  archivesBaseName = 'sensision-service'
+  group = 'io.warp10'
 
   sourceSets {
     main {
       java {
-        srcDirs '../src/main/java'
+        srcDirs 'src/main/java'
       }
     }
   }
 
   jar {
     manifest {
-      attributes("Premain-Class": "io.warp10.sensision.SensisionJMXAgent")
-      attributes("Implementation-Title": "sensision-lib")
+      attributes("Premain-Class": "io.warp10.sensision.Main")
+      attributes("Implementation-Title": "sensision-service")
       attributes("Implementation-Version": version)
     }
   }
 
-  task sensisionLib(type: Jar, dependsOn: jar) {
+  task sensisionService(type: Jar, dependsOn: jar) {
     inputs.files jar.archivePath
-    appendix 'jarjar'
+    appendix = "full"
 
     manifest {
-      attributes("Premain-Class": "io.warp10.sensision.SensisionJMXAgent")
-      attributes("Implementation-Title": "sensision-lib")
+      attributes("Main-Class": "io.warp10.sensision.Main")
+      attributes("Implementation-Title": "sensision-service")
       attributes("Implementation-Version": version)
     }
 
@@ -140,6 +206,117 @@ project(':sensision-lib') {
       project.ant {
         taskdef name: "jarjar", classname: "com.tonicsystems.jarjar.JarJarTask", classpath: configurations.tools.asPath
         jarjar(jarfile: archivePath, manifest: "${buildDir}/MANIFEST.MF") {
+          zipfileset(src: jar.archivePath) {
+            include(name: 'io/warp10/sensision/**')
+          }
+
+          //
+          // Iterate over .jar files
+          //
+          configurations.runtime.files.findAll {file ->
+            for (name in ['jetty-', 'javax.servlet-', 'servlet-api-', 'groovy-all-', 'slf4j-api', 'slf4j-simple']) {
+              if (file.name.startsWith(name)) { return true; }
+            }
+            return false;
+          }.each {jarjarFile ->
+            zipfileset(src: jarjarFile) {
+              // WARNING: MUST keep META-INF/DgmInfo which is needed by Groovy
+              exclude(name: 'META-INF/*.DSA')
+              exclude(name: 'META-INF/*.RSA')
+              exclude(name: 'about.html')
+              exclude(name: 'about_files/**')
+              exclude(name: 'plugin.properties')
+              exclude(name: 'jetty-dir.css')
+            }
+          }
+
+          rule pattern: "io.warp10.sensision.**", result: "@0"
+          rule pattern: "javax.management.**", result: "@0"
+          rule pattern: "groovy**", result: "@0"
+          rule pattern: "org.codehaus.groovy.**", result: "@0"
+          rule pattern: "org.w3c.**", result: "@0"
+          rule pattern: "org.**", result: "io.warp10.sensision.jarjar.@0"
+          rule pattern: "javax.**", result: "io.warp10.sensision.jarjar.@0"
+        }
+      }
+    }
+  }
+
+  task createTarArchive(type: Exec, dependsOn: sensisionService) {
+    workingDir = '.'
+    commandLine = [ 'src/main/shell/package.sh', getVersionName() ]
+  }
+
+  publishing {
+    publications {
+      sensisionService(MavenPublication) {
+        artifact file("${buildDir}/libs/sensision-service-" + version + ".tar.gz")
+        groupId 'io.warp10'
+        artifactId archivesBaseName
+        version version
+      }
+    }
+  }
+
+  bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+
+    publications = [ 'sensisionService' ]
+
+    pkg {
+      repo = 'generic'
+      name = archivesBaseName
+      licenses = ['Apache-2.0']
+      vcsUrl = 'https://github.com/cityzendata/sensision.git'
+      version {
+        name = getVersionName()
+        released = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())
+        vcsTag = getVersionName()
+      }
+    }
+  }
+
+  bintrayUpload.dependsOn createTarArchive
+  uploadArchives.dependsOn sensisionService
+}
+
+project(':sensision-lib') {
+  version getVersionName()
+  archivesBaseName = 'sensision'
+  group = 'io.warp10'
+
+  jar {
+    manifest {
+      attributes("Premain-Class": "io.warp10.sensision.SensisionJMXAgent")
+      attributes("Implementation-Title": archivesBaseName)
+      attributes("Implementation-Version": version)
+    }
+
+    from project(":sensision").sourceSets.main.output
+      include 'io/warp10/sensision/Sensision**'
+      include 'io/warp10/sensision/hadoop/**'
+      include 'io/warp10/sensision/kafka/**'
+      include 'io/warp10/sensision/yammermetrics/**'
+
+  }
+
+  task sensisionLib(type: Jar, dependsOn: jar) {
+    inputs.files jar.archivePath
+    appendix 'lib'
+
+    manifest {
+      attributes("Premain-Class": "io.warp10.sensision.SensisionJMXAgent")
+      attributes("Implementation-Title": "sensision")
+      attributes("Implementation-Version": version)
+    }
+
+    doLast {
+      manifest.writeTo("${buildDir}/MANIFEST.MF")
+      project.ant {
+        taskdef name: "jarjar", classname: "com.tonicsystems.jarjar.JarJarTask", classpath: configurations.tools.asPath
+        jarjar(jarfile: archivePath, manifest: "${buildDir}/MANIFEST.MF") {
+
           zipfileset(src: jar.archivePath) {
             include(name: 'io/warp10/sensision/Sensision**')
             include(name: 'io/warp10/sensision/hadoop/**')
@@ -182,11 +359,26 @@ project(':sensision-lib') {
       sensisionlib(MavenPublication) {
         artifact sensisionLib
         groupId 'io.warp10'
-        artifactId 'sensision'
-        version getVersionName()
+        artifactId archivesBaseName
+        version version
       }
     }
   }
+
+  // DEPLOY ON MAVEN REPO WITH SCP
+  uploadArchives {
+    repositories {
+      repositories.mavenDeployer {
+        configuration = configurations.deployerJars
+        uniqueVersion = false
+
+        repository(url: "scpexe://${sensisionLibPublishURL}") {
+          authentication(userName: "${sensisionLibPublishUser}")
+        }
+      }
+    }
+  }
+
   bintray {
     user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
     key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
@@ -195,116 +387,20 @@ project(':sensision-lib') {
 
     pkg {
       repo = 'maven'
-      name = 'sensision'
+      name = archivesBaseName
       licenses = ['Apache-2.0']
       vcsUrl = 'https://github.com/cityzendata/sensision.git'
       version {
         name = getVersionName()
-        released  = new Date()
-        vcsTag = getVersionName()
-      }
-    }
-  }
-}
-
-project(':sensision-service') {
-
-  compileJava {
-    //options.compilerArgs << '-g:none'
-    options.compilerArgs << '-source'
-    options.compilerArgs << '1.5'
-    options.compilerArgs << '-target'
-    options.compilerArgs << '1.5'
-  }
-
-  sourceSets {
-    main {
-      java {
-        srcDirs '../src/main/java'
-      }
-    }
-  }
-
-  task sensisionService(type: Jar, dependsOn: jar) {
-    inputs.files jar.archivePath
-    appendix = getVersionName()
-
-    manifest {
-      attributes("Main-Class": "io.warp10.sensision.Main")
-      attributes("Implementation-Title": "sensision-service")
-      attributes("Implementation-Version": appendix)
-    }
-
-    doLast {
-      manifest.writeTo("${buildDir}/MANIFEST.MF")
-      project.ant {
-        taskdef name: "jarjar", classname: "com.tonicsystems.jarjar.JarJarTask", classpath: configurations.tools.asPath
-        ext.sensisionServiceJar = archivePath
-        jarjar(jarfile: archivePath, manifest: "${buildDir}/MANIFEST.MF") {
-          zipfileset(src: jar.archivePath) {
-            include(name: 'io/warp10/sensision/**')
-          }
-
-          //
-          // Iterate over .jar files
-          //
-          configurations.runtime.files.findAll {file ->
-            for (name in ['jetty-', 'javax.servlet-', 'servlet-api-', 'groovy-all-', 'slf4j-api', 'slf4j-simple']) {
-              if (file.name.startsWith(name)) { return true; }
-            }
-            return false;
-          }.each {jarjarFile ->
-            zipfileset(src: jarjarFile) {
-              // WARNING: MUST keep META-INF/DgmInfo which is needed by Groovy
-              exclude(name: 'META-INF/*.DSA')
-              exclude(name: 'META-INF/*.RSA')
-              exclude(name: 'about.html')
-              exclude(name: 'about_files/**')
-              exclude(name: 'plugin.properties')
-              exclude(name: 'jetty-dir.css')
-            }
-          }
-
-          rule pattern: "io.warp10.sensision.**", result: "@0"
-          rule pattern: "javax.management.**", result: "@0"
-          rule pattern: "groovy**", result: "@0"
-          rule pattern: "org.codehaus.groovy.**", result: "@0"
-          rule pattern: "org.w3c.**", result: "@0"
-          rule pattern: "org.**", result: "io.warp10.sensision.jarjar.@0"
-          rule pattern: "javax.**", result: "io.warp10.sensision.jarjar.@0"
-        }
-      }
-    }
-  }
-
-  task createTarArchive(type: Exec, dependsOn: sensisionService) {
-    workingDir = '.'
-    commandLine = [ '../src/main/shell/package.sh', getVersionName() ]
-  }
-
-  bintray {
-    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-
-    filesSpec {
-      from 'build/libs'
-      include 'sensision-service-' + getVersionName() + '.tar.gz'
-      into '.'
-    }
-
-    pkg {
-      repo = 'generic'
-      name = 'sensision-service'
-      licenses = ['Apache-2.0']
-      vcsUrl = 'https://github.com/cityzendata/sensision.git'
-      version {
-        name = getVersionName()
-        released  = new Date()
+        released = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())
         vcsTag = getVersionName()
       }
     }
   }
 
-  bintrayUpload.dependsOn createTarArchive
+  //
+  // Tasks dependencies
+  //
+  uploadArchives.dependsOn sensisionLib
+  bintrayUpload.dependsOn sensisionLib
 }
