@@ -69,6 +69,18 @@ subprojects {
 
   group = 'io.warp10'
 
+  //
+  // Java Compilation flags
+  //
+
+  compileJava {
+    //options.compilerArgs << '-g:none'
+    options.compilerArgs << '-source'
+    options.compilerArgs << '1.5'
+    options.compilerArgs << '-target'
+    options.compilerArgs << '1.5'
+  }
+
   ext{
     stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGEING_USER')
     stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGEING_URL')
@@ -113,18 +125,6 @@ subprojects {
   }
 
   //
-  // Java Compilation flags
-  //
-
-  compileJava {
-    //options.compilerArgs << '-g:none'
-    options.compilerArgs << '-source'
-    options.compilerArgs << '1.5'
-    options.compilerArgs << '-target'
-    options.compilerArgs << '1.5'
-  }
-
-  //
   // Global dependencies
   //
 
@@ -140,7 +140,6 @@ subprojects {
     // Yammer Metrics for SensisionReporter
     compile group: 'com.yammer.metrics', name: 'metrics-core', version: '2.2.0'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.12'
-    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.12'
     // Kafka
     compile("org.apache.kafka:kafka_2.9.2:0.8.1") {
       exclude module: 'jms'
@@ -192,7 +191,7 @@ project(':sensision') {
   }
 
   task sensisionService(type: Jar, dependsOn: jar) {
-    inputs.files jar.archivePath
+    zip64 = true
     appendix = "full"
 
     manifest {
@@ -201,45 +200,28 @@ project(':sensision') {
       attributes("Implementation-Version": version)
     }
 
-    doLast {
-      manifest.writeTo("${buildDir}/MANIFEST.MF")
-      project.ant {
-        taskdef name: "jarjar", classname: "com.tonicsystems.jarjar.JarJarTask", classpath: configurations.tools.asPath
-        jarjar(jarfile: archivePath, manifest: "${buildDir}/MANIFEST.MF") {
-          zipfileset(src: jar.archivePath) {
-            include(name: 'io/warp10/sensision/**')
-          }
-
-          //
-          // Iterate over .jar files
-          //
-          configurations.runtime.files.findAll {file ->
-            for (name in ['jetty-', 'javax.servlet-', 'servlet-api-', 'groovy-all-', 'slf4j-api', 'slf4j-simple']) {
-              if (file.name.startsWith(name)) { return true; }
-            }
-            return false;
-          }.each {jarjarFile ->
-            zipfileset(src: jarjarFile) {
-              // WARNING: MUST keep META-INF/DgmInfo which is needed by Groovy
-              exclude(name: 'META-INF/*.DSA')
-              exclude(name: 'META-INF/*.RSA')
-              exclude(name: 'about.html')
-              exclude(name: 'about_files/**')
-              exclude(name: 'plugin.properties')
-              exclude(name: 'jetty-dir.css')
-            }
-          }
-
-          rule pattern: "io.warp10.sensision.**", result: "@0"
-          rule pattern: "javax.management.**", result: "@0"
-          rule pattern: "groovy**", result: "@0"
-          rule pattern: "org.codehaus.groovy.**", result: "@0"
-          rule pattern: "org.w3c.**", result: "@0"
-          rule pattern: "org.**", result: "io.warp10.sensision.jarjar.@0"
-          rule pattern: "javax.**", result: "io.warp10.sensision.jarjar.@0"
+    from files(sourceSets.main.output.classesDir)
+    from {
+      configurations.compile.collect {
+        it.isDirectory() ? it : zipTree(it).matching {
+          include { it.toString().contains('jetty') }
+          include { it.toString().contains('javax.servlet') }
+          include { it.toString().contains('servlet-api') }
+          include { it.toString().contains('groovy-all') }
+          include { it.toString().contains('slf4j-api') }
+          include { it.toString().contains('slf4j-log4j12') }
+          include { it.toString().contains('log4j') }
         }
       }
+    } {
+      exclude 'META-INF/*.DSA'
+      exclude 'META-INF/*.RSA'
+      exclude 'about.html'
+      exclude 'about_files/**'
+      exclude 'plugin.properties'
+      exclude 'jetty-dir.css'
     }
+    with jar
   }
 
   task createTarArchive(type: Exec, dependsOn: sensisionService) {
