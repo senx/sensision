@@ -18,14 +18,7 @@ package io.warp10.sensision;
 
 import io.warp10.sensision.Sensision.Value;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
@@ -205,7 +198,7 @@ public class QueueForwarder extends Thread {
             } else {
               conn = (HttpURLConnection) this.url.openConnection(this.proxy);
             }
-            
+
             conn.setDoOutput(true);
             conn.setDoInput(true);
             conn.setRequestMethod("POST");
@@ -284,12 +277,22 @@ public class QueueForwarder extends Thread {
             // Update was successful, delete all batchfiles
             //
             
-            if (200 == conn.getResponseCode()) {
+            if (HttpURLConnection.HTTP_OK == conn.getResponseCode()) {
               for (File file: batchfiles) {
                 file.delete();
               }
-            }          
-          } catch (IOException ioe) { 
+            } else {
+              LOGGER.error(url + " failed - error code: " + conn.getResponseCode());
+              InputStream is = conn.getErrorStream();
+              BufferedReader errorReader = new BufferedReader(new InputStreamReader(is));
+              String line = errorReader.readLine();
+              while (null != line) {
+                LOGGER.error(line);
+                line = errorReader.readLine();
+              }
+              is.close();
+            }
+          } catch (IOException ioe) {
             LOGGER.error("Caught IO exception while in 'run'", ioe);
             if (ioe instanceof ConnectException) {
               break;
