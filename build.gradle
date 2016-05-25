@@ -92,6 +92,8 @@ subprojects {
     compile group: 'com.yammer.metrics', name: 'metrics-core', version: '2.2.0'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.12'
     compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.12'
+    // Java Merge Sort
+    compile group: 'com.fasterxml.util', name: 'java-merge-sort', version: '1.0.0'
     // Kafka
     compile("org.apache.kafka:kafka_2.9.2:0.8.1") {
       exclude module: 'jms'
