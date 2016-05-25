@@ -138,7 +138,11 @@ public class QueueForwarder extends Thread {
     this.deduplicationManager = new DeduplicationManager(queue,properties);
   
     if (null != properties.get(HTTP_PROXY_HOST + "." + queue) && null != properties.get(HTTP_PROXY_PORT + "." + queue)) {
-      this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(properties.getProperty(HTTP_PROXY_HOST + "." + queue), Integer.valueOf(properties.getProperty(HTTP_PROXY_PORT + "." + queue))));
+      if ("noproxy".equals(properties.get(HTTP_PROXY_PORT + "." + queue))) {
+        this.proxy = Proxy.NO_PROXY;
+      } else {
+        this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(properties.getProperty(HTTP_PROXY_HOST + "." + queue), Integer.valueOf(properties.getProperty(HTTP_PROXY_PORT + "." + queue))));
+      }
     } else {
       this.proxy = null;
     }
