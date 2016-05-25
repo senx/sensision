@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Iterator;
 
-import org.junit.Test;
-
 import com.fasterxml.sort.DataReader;
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.Sorter;
@@ -47,5 +45,5 @@ public class SortedPathIterator implements Iterator<Path> {
   public Path next() {
     File f = new File(new String(this.sortedIter.next(), Charsets.UTF_8));
     return f.toPath();
-  }   
-}
+  }  
+ }
