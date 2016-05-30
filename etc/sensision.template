@@ -8,6 +8,7 @@
 ##   proxy: pseudo poller, will act as a target of the 'http' queue manager and treat
 ##          received metrics as if it had polled them itself
 ##
+## REVISION_TAG=1.0
 
 sensision.home=/opt/sensision-@VERSION@/data
 

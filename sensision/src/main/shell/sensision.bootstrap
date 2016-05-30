@@ -18,6 +18,7 @@ SENSISION_HOME=/opt/sensision-@VERSION@
 chmod 755 ${SENSISION_HOME}
 chmod 755 ${SENSISION_HOME}/bin
 chmod 755 ${SENSISION_HOME}/etc
+chmod 755 ${SENSISION_HOME}/templates
 chmod 755 ${SENSISION_HOME}/data
 chmod 1733 ${SENSISION_HOME}/data/targets
 chmod 1733 ${SENSISION_HOME}/data/metrics
@@ -48,7 +49,7 @@ ln -s ${SENSISION_HOME}/bin/sensision.init /etc/init.d/sensision
 
 if [ -f ${WARP10_CONF} ]
 then
-  su sensision -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -a io.warp10.sensision -ks ${WARP10_CONF} -puidg -t -ttl 3153600000000 ${SENSISION_HOME}/etc/sensision.template"
+  su sensision -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -a io.warp10.sensision -ks ${WARP10_CONF} -puidg -t -ttl 3153600000000 ${SENSISION_HOME}/templates/sensision.template -o ${SENSISION_HOME}/etc/sensision.conf"
 else
   echo "WARN: '${WARP10_CONF}' does not exist. Skip generation of sensision configuration."
 fi
