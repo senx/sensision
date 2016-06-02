@@ -194,7 +194,9 @@ project(':sensision') {
 
   task sensisionService(type: Jar, dependsOn: jar) {
     zip64 = true
-    appendix = "full"
+    ext.suffixName = null != System.getProperty('sensision') ? System.getProperty('sensision') : ""
+    appendix = "${suffixName}"
+
 
     manifest {
       attributes("Main-Class": "io.warp10.sensision.Main")
