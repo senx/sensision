@@ -19,6 +19,7 @@ mkdir -p ${SENSISION_HOME}/data/targets
 mkdir -p ${SENSISION_HOME}/data/metrics
 mkdir -p ${SENSISION_HOME}/data/queued
 mkdir -p ${SENSISION_HOME}/etc
+mkdir -p ${SENSISION_HOME}/templates
 mkdir -p ${SENSISION_HOME}/bin
 mkdir -p ${SENSISION_HOME}/scripts/60000
 
@@ -32,7 +33,7 @@ sed -e "s/@VERSION@/${VERSION}/g" ../src/main/shell/sensision.init > ${SENSISION
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/shell/sensision.bootstrap > ${SENSISION_HOME}/bin/sensision.bootstrap
 
 # Copy template configuration
-sed -e "s/@VERSION@/${VERSION}/g" ../../etc/sensision.template > ${SENSISION_HOME}/etc/sensision.template
+sed -e "s/@VERSION@/${VERSION}/g" ../../etc/sensision.template > ${SENSISION_HOME}/templates/sensision.template
 
 # Copy jar
 cp ../build/libs/sensision-service-full-${VERSION}.jar ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
@@ -40,6 +41,7 @@ cp ../build/libs/sensision-service-full-${VERSION}.jar ${SENSISION_HOME}/bin/sen
 # Fix permissions
 chmod 755 ${SENSISION_HOME}/bin
 chmod 755 ${SENSISION_HOME}/etc
+chmod 755 ${SENSISION_HOME}/templates
 chmod 755 ${SENSISION_HOME}/data
 chmod 1733 ${SENSISION_HOME}/data/targets
 chmod 1733 ${SENSISION_HOME}/data/metrics
