@@ -36,7 +36,7 @@ sed -e "s/@VERSION@/${VERSION}/g" ../src/main/shell/sensision.bootstrap > ${SENS
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/sensision.template > ${SENSISION_HOME}/templates/sensision.template
 
 # Copy jar
-cp ../build/libs/sensision-service-full-${VERSION}.jar ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
+cp ../build/libs/sensision-service-${VERSION}.jar ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
 
 # Fix permissions
 chmod 755 ${SENSISION_HOME}/bin
