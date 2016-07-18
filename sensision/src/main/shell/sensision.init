@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Source function library.
+if [ -e /etc/rc.d/init.d/functions ];
+then
 #
 # sensision	Sensision metric collection service
 #
@@ -6,12 +10,21 @@
 # description: Sensision collects various metrics and moves them to Cityzen Data
 
 # Source function library.
-if [ -e /etc/rc.d/init.d/functions ];
-then
-  . /etc/rc.d/init.d/functions
+. /etc/rc.d/init.d/functions
 elif [ -e /lib/lsb/init-functions ];
 then
- . /lib/lsb/init-functions
+### BEGIN INIT INFO
+# Provides:          sensision
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Sensision metric collection service
+# Description:       Sensision metric collection service
+### END INIT INFO
+
+# Source function library.
+. /lib/lsb/init-functions
 fi
 
 VERSION=@VERSION@
@@ -20,6 +33,8 @@ SENSISION_HOME=/opt/sensision-${VERSION}
 SENSISION_USER=sensision
 SENSISION_CONFIG=${SENSISION_HOME}/etc/sensision.conf
 SENSISION_JAR=${SENSISION_HOME}/bin/sensision-${VERSION}.jar
+SENSISION_CP=${SENSISION_HOME}/etc:${SENSISION_JAR}
+SENSISION_CLASS=io.warp10.sensision.Main
 SENSISION_HEAP=64m
 SENSISION_OPTS=-Dsensision.server.port=0
 export MALLOC_ARENA_MAX=1
@@ -33,17 +48,17 @@ start() {
   if [ ! -h  "/var/run/sensision" ]; then
     ln -s ${SENSISION_HOME}/data /var/run/sensision
   fi
-  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -jar ${SENSISION_JAR} &"
+  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/nohup.out 2>&1 &"
 }
 
 stop() {
   JAR=`basename ${SENSISION_JAR}`
-  kill `su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${JAR}|cut -f 1 -d' '"`
+  kill `su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${SENSISION_CLASS}|cut -f 1 -d' '"`
 }
 
 status() {
   JAR=`basename ${SENSISION_JAR}`
-  ${JAVA_HOME}/bin/jps -l|grep ${JAR}
+  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${SENSISION_CLASS}"
 }
 
 # See how we were called.
