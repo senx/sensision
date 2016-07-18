@@ -217,6 +217,7 @@ public class QueueForwarder extends Thread {
             conn.setRequestProperty(this.tokenHeader, this.token);
             conn.setRequestProperty("Content-Type", "application/gzip");
             conn.setChunkedStreamingMode(65536);
+
             conn.connect();
             
             OutputStream os = conn.getOutputStream();
@@ -307,6 +308,7 @@ public class QueueForwarder extends Thread {
           } catch (IOException ioe) {
             LOGGER.error("Caught IO exception while in 'run'", ioe);
             if (ioe instanceof ConnectException) {
+              LOGGER.error("(ConnectException) url: " + this.url);
               break;
             }
           } finally {
