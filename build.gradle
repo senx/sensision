@@ -236,7 +236,9 @@ project(':sensision') {
   publishing {
     publications {
       sensisionService(MavenPublication) {
-        artifact file("${buildDir}/libs/sensision-service-" + version + ".tar.gz")
+        artifact("${buildDir}/libs/sensision-service-" + version + ".tar.gz") {
+          extension = 'tar.gz'
+        }
         groupId 'io.warp10'
         artifactId archivesBaseName
         version version
