@@ -149,7 +149,7 @@ public class HttpPoller extends Thread {
     
       pollables.clear();
 
-      Set<Integer> knownPorts = ports.keySet();
+      Set<Integer> knownPorts = new HashSet<Integer>(ports.keySet());
       
       for (int port: knownPorts) {
 
