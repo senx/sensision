@@ -149,7 +149,9 @@ public class HttpPoller extends Thread {
     
       pollables.clear();
 
-      for (int port: ports.keySet()) {
+      Set<Integer> knownPorts = ports.keySet();
+      
+      for (int port: knownPorts) {
 
         //
         // If port has no scheduled poll yet or should be polled immediately, select it
