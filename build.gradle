@@ -314,7 +314,7 @@ project(':sensision-lib') {
           // Iterate over .jar files
           //
           configurations.runtime.files.findAll {file ->
-            for (name in ['jetty-', 'javax.servlet-', 'servlet-api-']) {
+            for (name in ['jetty-', 'javax.servlet-']) {
               if (file.name.startsWith(name)) { return true; }
             }
             return false;
