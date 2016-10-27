@@ -711,7 +711,7 @@ public class Sensision {
     }
   }
 
-  public static final void update(String cls, Map<String,String> labels, long ttl, Number delta) {
+  public static final void update(String cls, Map<String,String> labels, Long ttl, Number delta) {
     update(cls, labels, System.currentTimeMillis() * TIME_UNITS_PER_MS, null, null, null, delta, ttl);
   }
   
