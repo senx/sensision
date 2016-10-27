@@ -994,7 +994,28 @@ public class Sensision {
 
     return container.elevation;
   }
-  
+
+  /**
+   * Return the current timestamp of the given Geo Time Series.
+   * 
+   * @param cls Class name of GTS
+   * @param labels Labels map of GTS
+   * @return the set timestamp or null if the GTS is unknown
+   */
+  public static final Long getTimestamp(String cls, Map<String,String> labels) {
+    Map<Map<String,String>, Value> clsValues = values.get(cls);
+    if (null == clsValues) {
+      return null;
+    }
+    Value container = clsValues.get(labels);
+    
+    if (null == container) {
+      return null;
+    }
+
+    return container.timestamp;
+  }
+
   private synchronized static final Value getContainer(String cls, Map<String,String> labels, Object value) {
 
     Value container = null;
