@@ -1,0 +1,94 @@
+//
+// Produces metrics about Hbase: number of regions in transition for more than 60000 milliseconds
+//
+
+import java.io.PrintWriter;
+import static io.warp10.sensision.Utils.*;
+
+//
+// Master status: Ip/port
+//
+
+def ipMaster = '127.0.0.1'
+def portMaster = '16010'
+
+File OUTFILE = getMetricsFile('hbase-transition');
+
+//
+// Open the file with a '.pending' suffix so it does not get picked up while we fill it
+//
+
+File outfile = OUTFILE;
+File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+
+PrintWriter pw = new PrintWriter(tmpfile);
+
+//
+// Run the desired process
+//
+
+command = 'curl --silent --show-error --connect-timeout 10 http://' + ipMaster + ':' + portMaster + '/master-status'
+def p = command.execute()
+
+//
+// Consume its output
+//
+
+def out = new StringBuilder()
+def err = new StringBuilder()
+p.waitForProcessOutput(out, err)
+def metrics=[]
+def outputLines=[]
+
+//      
+// default transition value: 0
+//
+metrics[0] = ['transition':0]
+
+if (out) {
+  out.eachLine { line ->
+    if (line =~ /Total number of Regions in Transition for more than 60000 milliseconds/) {
+      def matcher = line =~ /.*Total number of Regions in Transition for more than 60000 milliseconds<\/td><td>\s*([0-9]+)\s*<\/td.*>/
+      if( matcher.matches() ) {
+        metrics[0].'transition' = matcher.group(1) as int
+      }
+    }
+  }
+}
+
+if (err) { 
+  println err
+}
+
+//
+// Common labels for all metrics
+//
+
+Map<String,String> commonLabels = [:];
+
+
+//
+// Output file
+//
+
+long now = System.currentTimeMillis() * 1000L;
+
+useful_metrics = [
+  'transition':'hbase-transition'
+]
+
+metrics.each {metric ->
+  labels = [:];
+  labels.putAll(commonLabels);
+ for (m in useful_metrics) {
+    storeMetric(pw, now, m.value, labels, (metric[m.key] != '')?metric[m.key] as int:0)
+  }
+}
+
+try { if (null != pw) pw.close(); } catch (IOException ioe) {}
+
+//
+// Move file to final location
+//
+
+tmpfile.renameTo(outfile);
