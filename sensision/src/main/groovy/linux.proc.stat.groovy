@@ -27,8 +27,7 @@ populateSymbolTable(this);
 // FILTER - If FILTER is not null, only metrics that match (start with) this FILTER will be retained
 // FILTER_NAME = ['cpu','processes'];
 //
-FILTER_NAME = ['cpu','processes'];
-//FILTER_NAME = null;
+FILTER_NAME = null;
 
 //
 // Common labels for all metrics
