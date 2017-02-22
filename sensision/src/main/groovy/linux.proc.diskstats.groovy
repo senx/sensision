@@ -24,6 +24,12 @@ import static io.warp10.sensision.Utils.*;
 populateSymbolTable(this);
 
 //
+// FILTER - If FILTER is not null, only device that matches (starts with) these names will be retained
+// FILTER_NAME = ['sd','md'];
+//
+FILTER_NAME = null;
+
+//
 // Common labels for all metrics
 //
 
@@ -90,42 +96,56 @@ try {
     } else if (14 == tokens.length) {
       // Linux 2.6
      
-      name = tokens[2];      
+      name = tokens[2];
       idx = 3;
     }
 
-    long reads_completed = Long.valueOf(tokens[idx++]);
-    long reads_merged = Long.valueOf(tokens[idx++]);
-    long sectors_read = Long.valueOf(tokens[idx++]);
-    long ms_reading = Long.valueOf(tokens[idx++]);
-    long writes_completed = Long.valueOf(tokens[idx++]);
-    long writes_merged = Long.valueOf(tokens[idx++]);
-    long sectors_written = Long.valueOf(tokens[idx++]);
-    long ms_writing = Long.valueOf(tokens[idx++]);
-    long io_in_progress = Long.valueOf(tokens[idx++]);
-    long ms_io = Long.valueOf(tokens[idx++]);
-    long weighted_ms_io = Long.valueOf(tokens[idx++]);
+    // Is the current device name match selection (FILTER) - true by default
+    boolean selected = true;
 
-    labels = [:];
-    labels.putAll(commonLabels);
-    labels['major'] = major;
-    labels['minor'] = minor;
-    labels['device'] = name;
+    if (null != FILTER_NAME) {
+      selected = FILTER_NAME.find { 
+        if (name.startsWith(it)) { 
+          return true;
+        }
+        return false;
+      }
+    }
 
-    storeMetric(pw, now, 'linux.proc.diskstats.reads.completed', labels, reads_completed);
-    storeMetric(pw, now, 'linux.proc.diskstats.reads.merged', labels, reads_merged);
-    storeMetric(pw, now, 'linux.proc.diskstats.reads.sectors', labels, sectors_read);
-    storeMetric(pw, now, 'linux.proc.diskstats.reads.ms', labels, ms_reading);
+    if (selected) {
+      long reads_completed = Long.valueOf(tokens[idx++]);
+      long reads_merged = Long.valueOf(tokens[idx++]);
+      long sectors_read = Long.valueOf(tokens[idx++]);
+      long ms_reading = Long.valueOf(tokens[idx++]);
+      long writes_completed = Long.valueOf(tokens[idx++]);
+      long writes_merged = Long.valueOf(tokens[idx++]);
+      long sectors_written = Long.valueOf(tokens[idx++]);
+      long ms_writing = Long.valueOf(tokens[idx++]);
+      long io_in_progress = Long.valueOf(tokens[idx++]);
+      long ms_io = Long.valueOf(tokens[idx++]);
+      long weighted_ms_io = Long.valueOf(tokens[idx++]);
 
-    storeMetric(pw, now, 'linux.proc.diskstats.writes.completed', labels, writes_completed);
-    storeMetric(pw, now, 'linux.proc.diskstats.writes.merged', labels, writes_merged);
-    storeMetric(pw, now, 'linux.proc.diskstats.writes.sectors', labels, sectors_written);
-    storeMetric(pw, now, 'linux.proc.diskstats.writes.ms', labels, ms_writing);
+      labels = [:];
+      labels.putAll(commonLabels);
+      labels['major'] = major;
+      labels['minor'] = minor;
+      labels['device'] = name;
 
-    storeMetric(pw, now, 'linux.proc.diskstats.io.inprogress', labels, io_in_progress);
+      storeMetric(pw, now, 'linux.proc.diskstats.reads.completed', labels, reads_completed);
+      storeMetric(pw, now, 'linux.proc.diskstats.reads.merged', labels, reads_merged);
+      storeMetric(pw, now, 'linux.proc.diskstats.reads.sectors', labels, sectors_read);
+      storeMetric(pw, now, 'linux.proc.diskstats.reads.ms', labels, ms_reading);
 
-    storeMetric(pw, now, 'linux.proc.diskstats.io.ms', labels, ms_io);
-    storeMetric(pw, now, 'linux.proc.diskstats.io.ms.weighted', labels, weighted_ms_io);
+      storeMetric(pw, now, 'linux.proc.diskstats.writes.completed', labels, writes_completed);
+      storeMetric(pw, now, 'linux.proc.diskstats.writes.merged', labels, writes_merged);
+      storeMetric(pw, now, 'linux.proc.diskstats.writes.sectors', labels, sectors_written);
+      storeMetric(pw, now, 'linux.proc.diskstats.writes.ms', labels, ms_writing);
+
+      storeMetric(pw, now, 'linux.proc.diskstats.io.inprogress', labels, io_in_progress);
+
+      storeMetric(pw, now, 'linux.proc.diskstats.io.ms', labels, ms_io);
+      storeMetric(pw, now, 'linux.proc.diskstats.io.ms.weighted', labels, weighted_ms_io);
+    }
   }
 } catch (IOException ioe) {        
 } finally {

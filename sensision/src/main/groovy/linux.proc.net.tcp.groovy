@@ -24,6 +24,12 @@ import static io.warp10.sensision.Utils.*;
 populateSymbolTable(this);
 
 //
+// FILTER - If FILTER is not null, only ports(src or dst port) that match (exact match) this FILTER will be retained
+// FILTER_NAME = ['22','8080'];
+//
+FILTER_NAME = null;
+
+//
 // Common labels for all metrics
 //
 
@@ -169,6 +175,12 @@ try {
 
       int srcport = Integer.valueOf(tokens[1].replaceAll('.*:',''), 16);
       int dstport = Integer.valueOf(tokens[2].replaceAll('.*:',''), 16);
+
+      if (null != FILTER_NAME) {
+        if (!FILTER_NAME.contains(Integer.toString(srcport)) && !FILTER_NAME.contains(Integer.toString(dstport))) {
+          continue;
+        }
+      }
 
       //
       // Extract service name from well known ports list

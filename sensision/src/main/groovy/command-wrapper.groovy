@@ -28,4 +28,9 @@ def p = "ls -lart".execute()
 // Consume its output, ignoring results
 //
 
-p.consumeProcessOutput()
+def out = new StringBuffer()
+def err = new StringBuffer()
+
+p.consumeProcessOutput(out,err)
+
+if(err.size() > 0) println err

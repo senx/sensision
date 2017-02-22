@@ -24,6 +24,12 @@ import static io.warp10.sensision.Utils.*;
 populateSymbolTable(this);
 
 //
+// FILTER - If FILTER is not null, only interface that matches (exact match) these names will be retained
+// FILTER_NAME = ['lo','eth0'];
+//
+FILTER_NAME = null;
+
+//
 // Common labels for all metrics
 //
 
@@ -79,6 +85,12 @@ try {
     String[] tokens = line.trim().split("[:\\s]+");
     
     String iface = tokens[0];
+
+    if (null != FILTER_NAME) {
+      if (!FILTER_NAME.contains(iface)) {
+        continue;
+      }
+    }
 
     labels = [:];
     labels['iface'] = iface;

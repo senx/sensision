@@ -24,6 +24,19 @@ import static io.warp10.sensision.Utils.*;
 populateSymbolTable(this);
 
 //
+// Verbose mode: add some labels (pid, ppid..)
+// false by default
+//
+
+VERBOSE = false;
+
+//
+// FILTER - If FILTER is not null, only process name that match (exact match) this FILTER will be retained
+// FILTER_NAME = ['X','Y'];
+//
+FILTER_NAME = null;
+
+//
 // Set _SC_CLK_TCK to the number of ticks per second (typically 100 on a Linux post 2.6)
 // if on a post 2.6 kernel. On a pre 2.6 (< 2.6) kernel, set it to 0 so start time computation
 // is correctly done (in pre 2.6 kernels, starttime is reported in jiffies instead of
@@ -139,6 +152,14 @@ try {
     
     tokens = line.split("\\s+");
 
+    pName = tokens[1].substring(1, tokens[1].length() - 1);
+
+    if (null != FILTER_NAME) {
+      if (!FILTER_NAME.contains(pName)) {
+        continue;
+      }
+    }
+
     // Compute start time in ms
     jiffies_at_start = Long.valueOf(tokens[21]);
 
@@ -168,12 +189,15 @@ try {
     labels = [:];
     labels.putAll(commonLabels)
 
-    labels['pid'] = tokens[0];
-    labels['name'] = tokens[1].substring(1, tokens[1].length() - 1);
-    labels['ppid'] = tokens[3];
-    labels['pgrp'] = tokens[4];
-    labels['session'] = tokens[5];
-    labels['tty_nr'] = tokens[6];
+    labels['name'] = pName;
+
+    if (VERBOSE) {
+      labels['pid'] = tokens[0];
+      labels['ppid'] = tokens[3];
+      labels['pgrp'] = tokens[4];
+      labels['session'] = tokens[5];
+      labels['tty_nr'] = tokens[6];
+    }
 
     now = System.currentTimeMillis() * 1000L;
     storeMetric(pw, now, 'linux.proc.pid.state', labels, tokens[2]);

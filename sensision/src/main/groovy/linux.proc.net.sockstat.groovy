@@ -27,6 +27,12 @@ import static io.warp10.sensision.Utils.*;
 populateSymbolTable(this);
 
 //
+// FILTER - If FILTER is not null, only protocols that match (exact match) this FILTER will be retained
+// FILTER_NAME = ['TCP','RAW','UDP'];
+//
+FILTER_NAME = null;
+
+//
 // Common labels for all metrics
 //
 
@@ -77,6 +83,12 @@ try {
       //
 
       String protocol = tokens[0].replaceAll(":.*","");
+
+      if (null != FILTER_NAME) {
+        if (!FILTER_NAME.contains(protocol)) {
+          continue;
+        }
+      }
 
       for (int i = 1; i < tokens.length; i += 2) {
         String stat = tokens[i];

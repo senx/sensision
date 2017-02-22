@@ -24,6 +24,13 @@ import static io.warp10.sensision.Utils.*;
 populateSymbolTable(this);
 
 //
+// FILTER - If FILTER is not null, only metrics that match (start with) this FILTER will be retained
+// FILTER_NAME = ['cpu','processes'];
+//
+FILTER_NAME = ['cpu','processes'];
+//FILTER_NAME = null;
+
+//
 // Common labels for all metrics
 //
 
@@ -64,62 +71,76 @@ try {
 
     String[] tokens = line.split("\\s+");
     
-    if (tokens[0].startsWith("cpu")) {
-      cpu = tokens[0];
-      userhz_user = Long.valueOf(tokens[1]);
-      userhz_nice = Long.valueOf(tokens[2]);
-      userhz_system = Long.valueOf(tokens[3]);
-      userhz_idle = Long.valueOf(tokens[4]);
-      userhz_iowait = Long.valueOf(tokens[5]);
-      userhz_irq = Long.valueOf(tokens[6]);
-      userhz_softirq = Long.valueOf(tokens[7]);
+    // Is the current metric name match selection (FILTER) - true by default
+    boolean selected = true;
 
-      labels['cpu'] = cpu;
-
-      storeMetric(pw, now, 'linux.proc.stat.userhz.user', labels, userhz_user);
-      storeMetric(pw, now, 'linux.proc.stat.userhz.nice', labels, userhz_nice);
-      storeMetric(pw, now, 'linux.proc.stat.userhz.system', labels, userhz_system);
-      storeMetric(pw, now, 'linux.proc.stat.userhz.idle', labels, userhz_idle);
-      storeMetric(pw, now, 'linux.proc.stat.userhz.iowait', labels, userhz_iowait);
-      storeMetric(pw, now, 'linux.proc.stat.userhz.irq', labels, userhz_irq);
-      storeMetric(pw, now, 'linux.proc.stat.userhz.softirq', labels, userhz_softirq);
-
-      labels.remove('cpu');
-    } else if ("intr".equals(tokens[0])) {
-      interrupts = Long.valueOf(tokens[1]);
-      labels['irq'] = 'all';
-      storeMetric(pw, now, 'linux.proc.stat.interrupts', labels, interrupts);
-      for (int i = 2; i < tokens.length; i++) {
-        interrupts = Long.valueOf(tokens[i]);
-        // Only emit a metric if interrupt count > 0
-        if (interrupts > 0) {
-          labels['irq'] = Long.toString(i - 2);
-          storeMetric(pw, now, 'linux.proc.stat.interrupts', labels, interrupts);
+    if (null != FILTER_NAME) {
+      selected = FILTER_NAME.find { 
+        if (tokens[0].startsWith(it)) { 
+          return true;
         }
+        return false;
       }
-      labels.remove('irq');
-    } else if ("ctxt".equals(tokens[0])) {
-      ctxt = Long.valueOf(tokens[1]);
-      storeMetric(pw, now, 'linux.proc.stat.ctxt', labels, ctxt);
-    } else if ("btime".equals(tokens[0])) {
-      btime = Long.valueOf(tokens[1]);
-      storeMetric(pw, now, 'linux.proc.stat.btime', labels, btime);
-    } else if ("processes".equals(tokens[0])) {
-      processes = Long.valueOf(tokens[1]);
-      storeMetric(pw, now, 'linux.proc.stat.processes', labels, processes);
-    } else if ("softirq".equals(tokens[0])) {
-      interrupts = Long.valueOf(tokens[1]);
-      labels['irq'] = 'all';
-      storeMetric(pw, now, 'linux.proc.stat.softirqs', labels, interrupts);
-      for (int i = 2; i < tokens.length; i++) {
-        interrupts = Long.valueOf(tokens[i]);
-        // Only emit a metric if interrupt count > 0
-        if (interrupts > 0) {
-          labels['irq'] = Long.toString(i - 2);
-          storeMetric(pw, now, 'linux.proc.stat.softirqs', labels, interrupts);
+    }
+
+    if (selected) {
+      if (tokens[0].startsWith("cpu")) {
+        cpu = tokens[0];
+        userhz_user = Long.valueOf(tokens[1]);
+        userhz_nice = Long.valueOf(tokens[2]);
+        userhz_system = Long.valueOf(tokens[3]);
+        userhz_idle = Long.valueOf(tokens[4]);
+        userhz_iowait = Long.valueOf(tokens[5]);
+        userhz_irq = Long.valueOf(tokens[6]);
+        userhz_softirq = Long.valueOf(tokens[7]);
+
+        labels['cpu'] = cpu;
+
+        storeMetric(pw, now, 'linux.proc.stat.userhz.user', labels, userhz_user);
+        storeMetric(pw, now, 'linux.proc.stat.userhz.nice', labels, userhz_nice);
+        storeMetric(pw, now, 'linux.proc.stat.userhz.system', labels, userhz_system);
+        storeMetric(pw, now, 'linux.proc.stat.userhz.idle', labels, userhz_idle);
+        storeMetric(pw, now, 'linux.proc.stat.userhz.iowait', labels, userhz_iowait);
+        storeMetric(pw, now, 'linux.proc.stat.userhz.irq', labels, userhz_irq);
+        storeMetric(pw, now, 'linux.proc.stat.userhz.softirq', labels, userhz_softirq);
+
+        labels.remove('cpu');
+      } else if ("intr".equals(tokens[0])) {
+        interrupts = Long.valueOf(tokens[1]);
+        labels['irq'] = 'all';
+        storeMetric(pw, now, 'linux.proc.stat.interrupts', labels, interrupts);
+        for (int i = 2; i < tokens.length; i++) {
+          interrupts = Long.valueOf(tokens[i]);
+          // Only emit a metric if interrupt count > 0
+          if (interrupts > 0) {
+            labels['irq'] = Long.toString(i - 2);
+            storeMetric(pw, now, 'linux.proc.stat.interrupts', labels, interrupts);
+          }
         }
+        labels.remove('irq');
+      } else if ("ctxt".equals(tokens[0])) {
+        ctxt = Long.valueOf(tokens[1]);
+        storeMetric(pw, now, 'linux.proc.stat.ctxt', labels, ctxt);
+      } else if ("btime".equals(tokens[0])) {
+        btime = Long.valueOf(tokens[1]);
+        storeMetric(pw, now, 'linux.proc.stat.btime', labels, btime);
+      } else if ("processes".equals(tokens[0])) {
+        processes = Long.valueOf(tokens[1]);
+        storeMetric(pw, now, 'linux.proc.stat.processes', labels, processes);
+      } else if ("softirq".equals(tokens[0])) {
+        interrupts = Long.valueOf(tokens[1]);
+        labels['irq'] = 'all';
+        storeMetric(pw, now, 'linux.proc.stat.softirqs', labels, interrupts);
+        for (int i = 2; i < tokens.length; i++) {
+          interrupts = Long.valueOf(tokens[i]);
+          // Only emit a metric if interrupt count > 0
+          if (interrupts > 0) {
+            labels['irq'] = Long.toString(i - 2);
+            storeMetric(pw, now, 'linux.proc.stat.softirqs', labels, interrupts);
+          }
+        }
+        labels.remove('irq');
       }
-      labels.remove('irq');
     }
   }
 } catch (IOException ioe) {        
