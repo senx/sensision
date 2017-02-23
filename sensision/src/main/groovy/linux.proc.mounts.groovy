@@ -23,6 +23,14 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
+//
+// FILTER - If FILTER is not null, only mount point that matches (starts with) these names will be retained
+// FILTER_NAME = ['/dev/sd','/dev/md'];
+//
+FILTER_NAME = null;
+
 //
 // Common labels for all metrics
 //
@@ -75,26 +83,42 @@ try {
     labels['mountpoint'] = mountpoint;
     labels.putAll(commonLabels);
 
-    storeMetric(pw, now, 'linux.proc.mount.fs', labels, fstype);
-    storeMetric(pw, now, 'linux.proc.mount.options', labels, mount_options);
+    // Is the current device match selection (FILTER) - true by default
+    boolean selected = true;
 
-    //
-    // Determine the capacity and free space of some mounted volumes.
-    // This is done on a per filesystem type basis.
-    // ext{2,3,4}, xfs, jfs, tmpfs, ramfs ar OK
-    // NFS is evil as calls to determine capacity or free space might hang
-    //
-    
-    if (fstype in [ "ext2", "ext3", "ext4", "jfs", "xfs", "tmpfs", "ramfs" ]) {
-      File dir = new File(mountpoint);
-      capacity = dir.getTotalSpace();
-      free = dir.getFreeSpace();
+    if (null != FILTER_NAME) {
+      selected = FILTER_NAME.find { 
+        if (device.startsWith(it)) { 
+          return true;
+        }
+        return false;
+      }
+    }
 
-      storeMetric(pw, now, 'linux.df.bytes.free', labels, free);
-      storeMetric(pw, now, 'linux.df.bytes.capacity', labels, capacity);
+    if (selected) {
+
+      storeMetric(pw, now, 'linux.proc.mount.fs', labels, fstype);
+      storeMetric(pw, now, 'linux.proc.mount.options', labels, mount_options);
+
+      //
+      // Determine the capacity and free space of some mounted volumes.
+      // This is done on a per filesystem type basis.
+      // ext{2,3,4}, xfs, jfs, tmpfs, ramfs ar OK
+      // NFS is evil as calls to determine capacity or free space might hang
+      //
+      
+      if (fstype in [ "ext2", "ext3", "ext4", "jfs", "xfs", "tmpfs", "ramfs" ]) {
+        File dir = new File(mountpoint);
+        capacity = dir.getTotalSpace();
+        free = dir.getFreeSpace();
+
+        storeMetric(pw, now, 'linux.df.bytes.free', labels, free);
+        storeMetric(pw, now, 'linux.df.bytes.capacity', labels, capacity);
+      }
     }
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

@@ -23,6 +23,14 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
+//
+// FILTER - If FILTER is not null, only interface that matches (exact match) these names will be retained
+// FILTER_NAME = ['lo','eth0'];
+//
+FILTER_NAME = null;
+
 //
 // Common labels for all metrics
 //
@@ -80,6 +88,12 @@ try {
     
     String iface = tokens[0];
 
+    if (null != FILTER_NAME) {
+      if (!FILTER_NAME.contains(iface)) {
+        continue;
+      }
+    }
+
     labels = [:];
     labels['iface'] = iface;
     labels.putAll(commonLabels);
@@ -102,7 +116,8 @@ try {
     storeMetric(pw, now, 'linux.proc.net.dev.transmit.carrier', labels, Long.valueOf(tokens[idx++]));
     storeMetric(pw, now, 'linux.proc.net.dev.transmit.compressed', labels, Long.valueOf(tokens[idx++]));
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

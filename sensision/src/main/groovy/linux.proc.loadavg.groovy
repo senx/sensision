@@ -21,6 +21,8 @@
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
+SHOW_ERRORS = false;
+
 //
 // Common labels for all metrics
 //
@@ -67,7 +69,8 @@ try {
   storeMetric(pw, now, 'linux.proc.loadavg.running', labels, Long.valueOf(fields[3].substring(0,fields[3].indexOf("/"))));
   storeMetric(pw, now, 'linux.proc.loadavg.total', labels, Long.valueOf(fields[3].substring(fields[3].indexOf("/") + 1)));
   storeMetric(pw, now, 'linux.proc.loadavg.highestpid', labels, Long.valueOf(fields[4]));
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

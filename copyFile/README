@@ -1,0 +1,9 @@
+gcc copyFile.c -o copyFile
+
+chown root:sensision XXX/copyFile
+chmod 4775 XXX/copyFile
+
+Usage:
+(sensision)>touch /var/tmp/test
+(sensision)>./copyFile /proc/net/ip_conntrack /var/tmp/test
+

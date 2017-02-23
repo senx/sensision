@@ -23,6 +23,14 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
+//
+// FILTER - If FILTER is not null, only vm metrics that match (exact match) this FILTER will be retained
+// FILTER_NAME = ['nr_file_pages','pgalloc_normal'];
+//
+FILTER_NAME = null;
+
 //
 // Common labels for all metrics
 //
@@ -71,9 +79,16 @@ try {
     name = tokens[0];
     value = Long.valueOf(tokens[1]);
 
+    if (null != FILTER_NAME) {
+      if (!FILTER_NAME.contains(name)) {
+        continue;
+      }
+    }
+
     storeMetric(pw, now, "linux.proc.vmstat.${name}", labels, value);
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

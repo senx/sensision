@@ -16,12 +16,40 @@
 
 /**
  * Produce metrics about processes on a Linux box
+ * Warning: this script depends on 'copyFile' tool if SENSISIONID_ONLY is true
  */
 
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
+
+SHOW_ERRORS = false;
+
+//
+// Verbose mode: add some labels (session, tty..)
+// false by default
+//
+VERBOSE = false;
+ 
+//
+// Take into account only processes that provide a custom pid (See SENSISIONID_KEY) 
+// false by default
+//
+
+SENSISIONID_ONLY = false;
+
+//
+// Name of the environment variable to override the default pid
+//
+
+SENSISIONID_KEY = "SENSISIONID";
+
+//
+// FILTER - If FILTER is not null, only process name that match (exact match) this FILTER will be retained
+// FILTER_NAME = ['java','XXX'];
+//
+FILTER_NAME = null;
 
 //
 // Set _SC_CLK_TCK to the number of ticks per second (typically 100 on a Linux post 2.6)
@@ -139,6 +167,60 @@ try {
     
     tokens = line.split("\\s+");
 
+    pName = tokens[1].substring(1, tokens[1].length() - 1);
+
+    if (null != FILTER_NAME) {
+      if (!FILTER_NAME.contains(pName)) {
+        continue;
+      }
+    }
+
+    String pid = tokens[0];
+    String customPid = null;
+
+    if (SENSISIONID_ONLY) {
+      //
+      // Get SENSISIONID from /proc/${pid}/environ
+      // Permission denied so we have to use copyFile
+      //
+
+      // Do not provide /proc at the beginning to copyFile
+      String procFilePath = "${pid}/environ";
+
+      String copyCmd = "/opt/sensision/bin/copyFile " + procFilePath;
+
+      def p = copyCmd.execute();
+
+      String varEnvMatched = null;
+
+      p.text.eachLine { 
+        if (it.contains(SENSISIONID_KEY)) {
+          varEnvMatched = it;
+        }
+      }
+
+      if (null != varEnvMatched) {
+        String[] values = varEnvMatched.split("\0");
+
+        values.each {
+          if (it.startsWith(SENSISIONID_KEY)) {
+            customPid = it.split("=",2)[1];
+
+            // override default pid
+            pid = customPid;
+          }
+        }
+      }
+
+      //
+      // SENSISIONID_ONLY => If custom pid has not been set by the current process, ignore it !
+      //
+
+      if (null == customPid) {
+        continue;
+      }
+    }
+
     // Compute start time in ms
     jiffies_at_start = Long.valueOf(tokens[21]);
 
@@ -168,12 +250,16 @@ try {
     labels = [:];
     labels.putAll(commonLabels)
 
-    labels['pid'] = tokens[0];
-    labels['name'] = tokens[1].substring(1, tokens[1].length() - 1);
-    labels['ppid'] = tokens[3];
-    labels['pgrp'] = tokens[4];
-    labels['session'] = tokens[5];
-    labels['tty_nr'] = tokens[6];
+    labels['name'] = pName;
+
+    labels['pid'] = pid;
+
+    if (VERBOSE) {
+      labels['ppid'] = tokens[3];
+      labels['pgrp'] = tokens[4];
+      labels['session'] = tokens[5];
+      labels['tty_nr'] = tokens[6];
+    }
 
     now = System.currentTimeMillis() * 1000L;
     storeMetric(pw, now, 'linux.proc.pid.state', labels, tokens[2]);
@@ -192,8 +278,10 @@ try {
     storeMetric(pw, now, 'linux.proc.pid.starttime', labels, (long) starttime);
     storeMetric(pw, now, 'linux.proc.pid.vsize', labels, Long.valueOf(tokens[22]));
     storeMetric(pw, now, 'linux.proc.pid.rss', labels, Long.valueOf(tokens[23]));
+
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

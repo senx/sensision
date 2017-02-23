@@ -26,6 +26,8 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
 //
 // Common labels for all metrics
 //
@@ -69,7 +71,8 @@ try {
 
     storeMetric(pw, now, 'linux.proc.sys.kernel.random.entropy_avail', labels, entropy_avail);
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}
