@@ -23,6 +23,8 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
 //
 // FILTER - If FILTER is not null, only mount point that matches (starts with) these names will be retained
 // FILTER_NAME = ['/dev/sd','/dev/md'];
@@ -115,7 +117,8 @@ try {
       }
     }
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

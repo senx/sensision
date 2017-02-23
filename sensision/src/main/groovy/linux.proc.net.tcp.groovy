@@ -23,6 +23,8 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
 //
 // FILTER - If FILTER is not null, only ports(src or dst port) that match (exact match) this FILTER will be retained
 // FILTER_NAME = ['22','8080'];
@@ -261,7 +263,8 @@ try {
       }
     }
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}
 }

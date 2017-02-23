@@ -23,6 +23,8 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
 //
 // FILTER - If FILTER is not null, only metrics that match (start with) this FILTER will be retained
 // FILTER_NAME = ['cpu','processes'];
@@ -142,7 +144,8 @@ try {
       }
     }
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

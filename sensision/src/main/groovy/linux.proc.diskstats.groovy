@@ -23,6 +23,8 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
 //
 // FILTER - If FILTER is not null, only device that matches (starts with) these names will be retained
 // FILTER_NAME = ['sd','md'];
@@ -147,7 +149,8 @@ try {
       storeMetric(pw, now, 'linux.proc.diskstats.io.ms.weighted', labels, weighted_ms_io);
     }
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

@@ -16,6 +16,7 @@
 
 /**
  * Produce metrics about processes on a Linux box
+ * Warning: this script depends on 'copyFile' tool if SENSISIONID_ONLY is true
  */
 
 import java.io.PrintWriter;
@@ -23,16 +24,30 @@ import static io.warp10.sensision.Utils.*;
 
 populateSymbolTable(this);
 
+SHOW_ERRORS = false;
+
 //
-// Verbose mode: add some labels (pid, ppid..)
+// Verbose mode: add some labels (session, tty..)
+// false by default
+//
+VERBOSE = false;
+ 
+//
+// Take into account only processes that provide a custom pid (See SENSISIONID_KEY) 
 // false by default
 //
 
-VERBOSE = false;
+SENSISIONID_ONLY = false;
+
+//
+// Name of the environment variable to override the default pid
+//
+
+SENSISIONID_KEY = "SENSISIONID";
 
 //
 // FILTER - If FILTER is not null, only process name that match (exact match) this FILTER will be retained
-// FILTER_NAME = ['X','Y'];
+// FILTER_NAME = ['java','XXX'];
 //
 FILTER_NAME = null;
 
@@ -160,6 +175,51 @@ try {
       }
     }
 
+    String pid = tokens[0];
+    String customPid = null;
+
+    if (SENSISIONID_ONLY) {
+      //
+      // Get SENSISIONID from /proc/${pid}/environ
+      // Permission denied so we have to use copyFile
+      //
+
+      String procFilePath = "/proc/${pid}/environ";
+
+      String copyCmd = "/opt/sensision/bin/copyFile " + procFilePath  + " -";
+
+      def p = copyCmd.execute();
+
+      String varEnvMatched = null;
+
+      p.text.eachLine { 
+        if (it.contains(SENSISIONID_KEY)) {
+          varEnvMatched = it;
+        }
+      }
+
+      if (null != varEnvMatched) {
+        String[] values = varEnvMatched.split("\0");
+
+        values.each {
+          if (it.startsWith(SENSISIONID_KEY)) {
+            customPid = it.split("=",2)[1];
+
+            // override default pid
+            pid = customPid;
+          }
+        }
+      }
+
+      //
+      // SENSISIONID_ONLY => If custom pid has not been set by the current process, ignore it !
+      //
+
+      if (null == customPid) {
+        continue;
+      }
+    }
+
     // Compute start time in ms
     jiffies_at_start = Long.valueOf(tokens[21]);
 
@@ -191,8 +251,9 @@ try {
 
     labels['name'] = pName;
 
+    labels['pid'] = pid;
+
     if (VERBOSE) {
-      labels['pid'] = tokens[0];
       labels['ppid'] = tokens[3];
       labels['pgrp'] = tokens[4];
       labels['session'] = tokens[5];
@@ -216,8 +277,10 @@ try {
     storeMetric(pw, now, 'linux.proc.pid.starttime', labels, (long) starttime);
     storeMetric(pw, now, 'linux.proc.pid.vsize', labels, Long.valueOf(tokens[22]));
     storeMetric(pw, now, 'linux.proc.pid.rss', labels, Long.valueOf(tokens[23]));
+
   }
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

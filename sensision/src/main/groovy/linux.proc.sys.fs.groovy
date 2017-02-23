@@ -21,6 +21,8 @@
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
+SHOW_ERRORS = false;
+
 //
 // Common labels for all metrics
 //
@@ -61,7 +63,8 @@ try {
   String[] fields = line.split("\\s+");
   
   storeMetric(pw, now, 'linux.proc.sys.fs.file-nr.allocated', labels, Long.valueOf(fields[0]));
-} catch (IOException ioe) {        
+} catch (Exception e) {
+  if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}
