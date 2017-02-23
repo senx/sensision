@@ -1,25 +1,50 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-int main(int argc, char *argv[]) {
-  char buf[BUFSIZ];
-  
-  if (argc != 3) { 
-    printf("Usage: %s /path/to/fileSource /path/to/fileTarget\n", argv[0]);
-    printf("Note: Create fileTarget before with the right uid/gid.\n");
-    printf("Use - as fileTarget to display file content to stdout.\n");
-    return 1;
+int main(int argc, char** argv) {
+
+
+  if (argc != 2) { 
+    
+    printf("Usage: %s [/proc]/XX/fileToDump\n", argv[0]);
+    printf("Note: Only files under /proc can be dumped\n");
+    printf("Sample: to dump /proc/net/ip_conntrack, use %s net/ip_conntrack - do not provide /proc at the beginning\n", argv[0]);
+    exit(-4);
+
   } else {
-    if (strcmp(argv[2],"-") == 0){
-      setuid(0);
-      sprintf(buf, "/bin/cat %s", argv[1], argv[2]);
-      system(buf);
-    } else {
-      setuid(0);
-      sprintf(buf, "/bin/cat %s > %s", argv[1], argv[2], argv[2]);
-      system(buf);
-    }
-  } 
-   return 0;
-}
+    
+    // Elevate our privileges
+    setuid(0);
 
+    FILE *fp;
+
+    char *fname = malloc(7 + strlen(argv[1]));
+    strcat(fname, "/proc/");
+    strcat(fname, argv[1]);
+
+    if (NULL != strstr(fname, "..")) {
+       exit(-3);
+    }
+
+    fp = fopen(fname, "r");
+
+    char buf[8192];
+
+    if (NULL != fp) {
+      int nread = 0;
+      while ((nread = fread(buf, 1, sizeof buf, fp)) > 0) {
+        fwrite(buf, 1, nread, stdout);
+      } 
+      if (ferror(fp)) {
+         exit(-1);
+      }
+      fclose(fp);
+      exit(0);
+    } else {
+      exit(-2);
+    }
+  }
+}

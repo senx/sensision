@@ -184,9 +184,10 @@ try {
       // Permission denied so we have to use copyFile
       //
 
-      String procFilePath = "/proc/${pid}/environ";
+      // Do not provide /proc at the beginning to copyFile
+      String procFilePath = "${pid}/environ";
 
-      String copyCmd = "/opt/sensision/bin/copyFile " + procFilePath  + " -";
+      String copyCmd = "/opt/sensision/bin/copyFile " + procFilePath;
 
       def p = copyCmd.execute();
 
