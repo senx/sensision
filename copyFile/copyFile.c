@@ -5,16 +5,29 @@
 #include <unistd.h>
 
 int main(int argc, char** argv) {
+  
+  //
+  // Exclusions: dump of these files (/proc/XXX/mem, ...) is forbidden
+  //
 
+  const char *exclusions[] = {"mem","fd","kcore"};
 
-  if (argc != 2) { 
+  if (argc != 2) {
     
     printf("Usage: %s [/proc]/XX/fileToDump\n", argv[0]);
     printf("Note: Only files under /proc can be dumped\n");
     printf("Sample: to dump /proc/net/ip_conntrack, use %s net/ip_conntrack - do not provide /proc at the beginning\n", argv[0]);
-    exit(-4);
+    exit(-5);
 
   } else {
+
+    for(int i = 0; i < sizeof(exclusions) / sizeof(exclusions[0]); i++) {
+      int diff = strlen(argv[1])-strlen(exclusions[i]);
+      if ((diff >= 0) && (0 == strcmp(&argv[1][diff], exclusions[i]))) {
+        printf("Dump of /proc/%s is forbidden\n", argv[1]);
+        exit(-4);
+      }
+    }
     
     // Elevate our privileges
     setuid(0);
@@ -26,7 +39,8 @@ int main(int argc, char** argv) {
     strcat(fname, argv[1]);
 
     if (NULL != strstr(fname, "..")) {
-       exit(-3);
+      printf(".. is forbidden (%s)\n", argv[1]);
+      exit(-3);
     }
 
     fp = fopen(fname, "r");
