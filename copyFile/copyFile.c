@@ -21,11 +21,31 @@ int main(int argc, char** argv) {
 
   } else {
 
+    char *fname = malloc(7 + strlen(argv[1]));
+    strcat(fname, "/proc/");
+    strcat(fname, argv[1]);
+
+    if (NULL != strstr(fname, "..")) {
+      printf(".. is forbidden (%s)\n", argv[1]);
+      exit(-5);
+    }
+
     for(int i = 0; i < sizeof(exclusions) / sizeof(exclusions[0]); i++) {
-      int diff = strlen(argv[1])-strlen(exclusions[i]);
-      if ((diff >= 0) && (0 == strcmp(&argv[1][diff], exclusions[i]))) {
+      // Path ends with by the current exclusion (/proc/{pid}/mem)
+      int diff = strlen(fname)-strlen(exclusions[i]);
+      if ((diff >= 0) && (0 == strcmp(&fname[diff], exclusions[i]))) {
         printf("Dump of /proc/%s is forbidden\n", argv[1]);
         exit(-4);
+      }
+
+      // The current exclusion is a directory in the path (/proc/{pid}/fd/0)
+      char *exclusionPattern = malloc(2 + strlen(exclusions[i]));
+      strcat(exclusionPattern, "/");
+      strcat(exclusionPattern, exclusions[i]);
+      strcat(exclusionPattern, "/");
+      if (NULL != strstr(fname, exclusionPattern)) {
+        printf("Dump of /proc/%s is forbidden\n", argv[1]);
+        exit(-3);
       }
     }
     
@@ -33,16 +53,6 @@ int main(int argc, char** argv) {
     setuid(0);
 
     FILE *fp;
-
-    char *fname = malloc(7 + strlen(argv[1]));
-    strcat(fname, "/proc/");
-    strcat(fname, argv[1]);
-
-    if (NULL != strstr(fname, "..")) {
-      printf(".. is forbidden (%s)\n", argv[1]);
-      exit(-3);
-    }
-
     fp = fopen(fname, "r");
 
     char buf[8192];
