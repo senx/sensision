@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
       }
 
       // The current exclusion is a directory in the path (/proc/{pid}/fd/0)
-      char *exclusionPattern = malloc(2 + strlen(exclusions[i]));
+      char *exclusionPattern = malloc(3 + strlen(exclusions[i]));
       strcat(exclusionPattern, "/");
       strcat(exclusionPattern, exclusions[i]);
       strcat(exclusionPattern, "/");
