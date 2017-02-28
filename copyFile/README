@@ -1,8 +1,0 @@
-gcc copyFile.c -o copyFile
-
-chown root:sensision XXX/copyFile
-chmod 4770 XXX/copyFile
-
-Usage:
-(sensision)>./copyFile net/ip_conntrack
-
