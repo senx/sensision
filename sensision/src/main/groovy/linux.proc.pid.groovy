@@ -201,6 +201,12 @@ try {
         }
       }
 
+      p.waitForOrKill(4000);
+
+      if (p.exitValue() && SHOW_ERRORS) {
+        System.err.println("[ERROR] - " + ${p.getErrorStream()});
+      }
+      
       if (null != varEnvMatched) {
         String[] values = varEnvMatched.split("\0");
 
