@@ -42,6 +42,9 @@ sed -e "s/@VERSION@/${VERSION}/g" ../../etc/sensision.template > ${SENSISION_HOM
 # Copy jar
 cp ../build/libs/sensision-service-${VERSION}.jar ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
 
+# Copy procDump tool
+cp ../../procDump/procDump ${SENSISION_HOME}/bin/procDump
+
 # Fix permissions
 chmod 755 ${SENSISION_HOME}/bin
 chmod 755 ${SENSISION_HOME}/etc
@@ -55,6 +58,7 @@ chmod -R 755 ${SENSISION_HOME}/scripts
 chmod 644 ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
 chmod 755 ${SENSISION_HOME}/bin/sensision.init
 chmod 755 ${SENSISION_HOME}/bin/sensision.bootstrap
+chmod 4750 ${SENSISION_HOME}/bin/procDump
 
 # Build tar
 tar zcpf ../build/libs/sensision-service-${VERSION}.tar.gz ${SENSISION_HOME}
