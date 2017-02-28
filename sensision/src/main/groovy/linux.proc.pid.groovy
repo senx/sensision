@@ -16,7 +16,7 @@
 
 /**
  * Produce metrics about processes on a Linux box
- * Warning: this script depends on 'copyFile' tool if SENSISIONID_ONLY is true
+ * Warning: this script depends on 'procDump' tool if SENSISIONID_ONLY is true
  */
 
 import java.io.PrintWriter;
@@ -38,6 +38,8 @@ VERBOSE = false;
 //
 
 SENSISIONID_ONLY = false;
+
+PROCDUMP_COMMAND = "/opt/sensision/bin/procDump"
 
 //
 // Name of the environment variable to override the default pid
@@ -181,15 +183,15 @@ try {
     if (SENSISIONID_ONLY) {
       //
       // Get SENSISIONID from /proc/${pid}/environ
-      // Permission denied so we have to use copyFile
+      // Permission denied so we have to use procDump
       //
 
-      // Do not provide /proc at the beginning to copyFile
+      // Do not provide /proc at the beginning to procDump
       String procFilePath = "${pid}/environ";
 
-      String copyCmd = "/opt/sensision/bin/copyFile " + procFilePath;
+      String dumpCmd = PROCDUMP_COMMAND + " " + procFilePath;
 
-      def p = copyCmd.execute();
+      def p = dumpCmd.execute();
 
       String varEnvMatched = null;
 
