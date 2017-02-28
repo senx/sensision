@@ -39,7 +39,7 @@ VERBOSE = false;
 
 SENSISIONID_ONLY = false;
 
-PROCDUMP_COMMAND = "/opt/sensision/bin/procDump"
+PROCDUMP_COMMAND = "/opt/sensision/bin/procDump";
 
 //
 // Name of the environment variable to override the default pid
