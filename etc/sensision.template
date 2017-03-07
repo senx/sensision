@@ -10,7 +10,7 @@
 ##
 ## REVISION_TAG=1.0
 
-sensision.home=/opt/sensision-@VERSION@/data
+sensision.home=/opt/sensision-@VERSION@
 
 #sensision.default.labels=
 sensision.pollers=http,file
