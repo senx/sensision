@@ -15,9 +15,9 @@ rm -rf ${ARCHIVE}
 # Create the directory hierarchy 
 mkdir ${ARCHIVE}
 cd ${ARCHIVE}
-mkdir -p ${SENSISION_HOME}/data/targets
-mkdir -p ${SENSISION_HOME}/data/metrics
-mkdir -p ${SENSISION_HOME}/data/queued
+mkdir -p ${SENSISION_HOME}/targets
+mkdir -p ${SENSISION_HOME}/metrics
+mkdir -p ${SENSISION_HOME}/queued
 mkdir -p ${SENSISION_HOME}/etc
 mkdir -p ${SENSISION_HOME}/logs
 mkdir -p ${SENSISION_HOME}/templates
@@ -49,11 +49,10 @@ cp ../../procDump/procDump ${SENSISION_HOME}/bin/procDump
 chmod 755 ${SENSISION_HOME}/bin
 chmod 755 ${SENSISION_HOME}/etc
 chmod 755 ${SENSISION_HOME}/templates
-chmod 755 ${SENSISION_HOME}/data
 chmod 755 ${SENSISION_HOME}/logs
-chmod 1733 ${SENSISION_HOME}/data/targets
-chmod 1733 ${SENSISION_HOME}/data/metrics
-chmod 700 ${SENSISION_HOME}/data/queued
+chmod 1733 ${SENSISION_HOME}/targets
+chmod 1733 ${SENSISION_HOME}/metrics
+chmod 700 ${SENSISION_HOME}/queued
 chmod -R 755 ${SENSISION_HOME}/scripts
 chmod 644 ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
 chmod 755 ${SENSISION_HOME}/bin/sensision.init
