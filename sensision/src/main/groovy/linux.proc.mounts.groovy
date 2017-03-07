@@ -21,42 +21,43 @@
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
-populateSymbolTable(this);
-
-SHOW_ERRORS = false;
-
-//
-// FILTER - If FILTER is not null, only mount point that matches (starts with) these names will be retained
-// FILTER_NAME = ['/dev/sd','/dev/md'];
-//
-FILTER_NAME = null;
-
-//
-// Common labels for all metrics
-//
-
-Map<String,String> commonLabels = [:];
-
-//
-// Output file
-//
-
-long now = System.currentTimeMillis() * 1000L;
-
-File OUTFILE = getMetricsFile('linux.proc.mounts');
-
-//
-// Open the file with a '.pending' suffix so it does not get picked up while we fill it
-//
-
-File outfile = OUTFILE;
-File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
-
-PrintWriter pw = new PrintWriter(tmpfile);
-
-BufferedReader br = null;
-
 try {
+
+  populateSymbolTable(this);
+
+  SHOW_ERRORS = false;
+
+  //
+  // FILTER - If FILTER is not null, only mount point that matches (starts with) these names will be retained
+  // FILTER_NAME = ['/dev/sd','/dev/md'];
+  //
+  FILTER_NAME = null;
+
+  //
+  // Common labels for all metrics
+  //
+
+  Map<String,String> commonLabels = [:];
+
+  //
+  // Output file
+  //
+
+  long now = System.currentTimeMillis() * 1000L;
+
+  File OUTFILE = getMetricsFile('linux.proc.mounts');
+
+  //
+  // Open the file with a '.pending' suffix so it does not get picked up while we fill it
+  //
+
+  File outfile = OUTFILE;
+  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+
+  PrintWriter pw = new PrintWriter(tmpfile);
+
+  BufferedReader br = null;
+
   //
   // Open /proc/mounts (which is a link to /proc/self/mounts after 2.4.19)
   //
@@ -117,15 +118,16 @@ try {
       }
     }
   }
+
+  //
+  // Move file to final location
+  //
+
+  tmpfile.renameTo(outfile);
+
 } catch (Exception e) {
   if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}
 }
-
-//
-// Move file to final location
-//
-
-tmpfile.renameTo(outfile);

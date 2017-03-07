@@ -21,91 +21,91 @@
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
-populateSymbolTable(this);
-
-SHOW_ERRORS = false;
-
-//
-// FILTER - If FILTER is not null, only ports(src or dst port) that match (exact match) this FILTER will be retained
-// FILTER_NAME = ['22','8080'];
-//
-FILTER_NAME = null;
-
-//
-// Common labels for all metrics
-//
-
-Map<String,String> commonLabels = [:];
-
-//
-// TCP Conncection states
-//
-
-TCP_CONNECTION_STATES = [ 
-  '01': 'established',
-  '02': 'syn_sent',
-  '03': 'syn_recv',
-  '04': 'fin_wait1',
-  '05': 'fin_wait2',
-  '06': 'time_wait',
-  '07': 'close',
-  '08': 'close_wait',
-  '09': 'last_ack',
-  '0A': 'listen',
-  '0B': 'closing',
-];
-
-//
-// List of well known ports whose value will be replaced with a name
-//
-
-WELL_KNOWN_PORTS = [
-  22: 'ssh',
-  25: 'smtp',
-  80: 'http',
-  443: 'https',
-  2181: 'zookeeper',
-  9000: 'hdfs-namenode',
-  9092: 'kafka',
-  50020: 'hdfs-datanode',
-  60020: 'hbase-regionserver',
-];
-
-//
-// List of users for which detailed metrics will be reported
-//
-
-DETAILED_USERS = [
-  'hbase',
-  'hdfs',
-  'kafka',
-  'mapred',
-  'sshd',
-  'zk',
-];
-
-//
-// Output file
-//
-
-File OUTFILE = getMetricsFile('linux.proc.net.tcp');
-
-//
-// Open the file with a '.pending' suffix so it does not get picked up while we fill it
-//
-
-File outfile = OUTFILE;
-File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
-
-PrintWriter pw = new PrintWriter(tmpfile);
-
-BufferedReader br = null;
-
-counters = [:];
-
-long now = System.currentTimeMillis() * 1000L;
-
 try {
+
+  populateSymbolTable(this);
+
+  SHOW_ERRORS = false;
+
+  //
+  // FILTER - If FILTER is not null, only ports(src or dst port) that match (exact match) this FILTER will be retained
+  // FILTER_NAME = ['22','8080'];
+  //
+  FILTER_NAME = null;
+
+  //
+  // Common labels for all metrics
+  //
+
+  Map<String,String> commonLabels = [:];
+
+  //
+  // TCP Conncection states
+  //
+
+  TCP_CONNECTION_STATES = [ 
+    '01': 'established',
+    '02': 'syn_sent',
+    '03': 'syn_recv',
+    '04': 'fin_wait1',
+    '05': 'fin_wait2',
+    '06': 'time_wait',
+    '07': 'close',
+    '08': 'close_wait',
+    '09': 'last_ack',
+    '0A': 'listen',
+    '0B': 'closing',
+  ];
+
+  //
+  // List of well known ports whose value will be replaced with a name
+  //
+
+  WELL_KNOWN_PORTS = [
+    22: 'ssh',
+    25: 'smtp',
+    80: 'http',
+    443: 'https',
+    2181: 'zookeeper',
+    9000: 'hdfs-namenode',
+    9092: 'kafka',
+    50020: 'hdfs-datanode',
+    60020: 'hbase-regionserver',
+  ];
+
+  //
+  // List of users for which detailed metrics will be reported
+  //
+
+  DETAILED_USERS = [
+    'hbase',
+    'hdfs',
+    'kafka',
+    'mapred',
+    'sshd',
+    'zk',
+  ];
+
+  //
+  // Output file
+  //
+
+  File OUTFILE = getMetricsFile('linux.proc.net.tcp');
+
+  //
+  // Open the file with a '.pending' suffix so it does not get picked up while we fill it
+  //
+
+  File outfile = OUTFILE;
+  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+
+  PrintWriter pw = new PrintWriter(tmpfile);
+
+  BufferedReader br = null;
+
+  counters = [:];
+
+  long now = System.currentTimeMillis() * 1000L;
 
   //
   // Read user names and ids out of /etc/passed
@@ -263,14 +263,15 @@ try {
       }
     }
   }
+
+  //
+  // Move file to final location
+  //
+
+  tmpfile.renameTo(outfile);
+
 } catch (Exception e) {
   if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}
 }
-
-//
-// Move file to final location
-//
-
-tmpfile.renameTo(outfile);

@@ -22,93 +22,100 @@
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
-populateSymbolTable(this);
-
-SHOW_ERRORS = false;
-
-//
-// Verbose mode: add some labels (session, tty..)
-// false by default
-//
-VERBOSE = false;
- 
-//
-// Take into account only processes that provide a custom pid (See SENSISIONID_KEY) 
-// false by default
-//
-
-SENSISIONID_ONLY = false;
-
-PROCDUMP_COMMAND = "/opt/sensision/bin/procDump";
-
-//
-// Name of the environment variable to override the default pid
-//
-
-SENSISIONID_KEY = "SENSISIONID";
-
-//
-// FILTER - If FILTER is not null, only process name that match (exact match) this FILTER will be retained
-// FILTER_NAME = ['java','XXX'];
-//
-FILTER_NAME = null;
-
-//
-// Set _SC_CLK_TCK to the number of ticks per second (typically 100 on a Linux post 2.6)
-// if on a post 2.6 kernel. On a pre 2.6 (< 2.6) kernel, set it to 0 so start time computation
-// is correctly done (in pre 2.6 kernels, starttime is reported in jiffies instead of
-// clock ticks)
-//
-
-_SC_CLK_TCK = 100;
-
-//
-// Minimum age of process (in ms) for its metrics to be reported
-//
-
-AGE_THRESHOLD = 900000;
-
-//
-// Quiet period after boot (in ms) during which we ignore processes (mostly system ones)
-//
-
-BOOT_QUIET_PERIOD = 0;
-
-//
-// Process groups for which no metrics are reported
-//
-
-EXCLUDED_PGRP = ['0','1'];
-
-//
-// Common labels for all metrics
-//
-
-Map<String,String> commonLabels = [:];
-
-//
-// Output file
-//
-
-long now = System.currentTimeMillis() * 1000L;
-
-File OUTFILE = getMetricsFile('linux.proc.pid');
-
-//
-// Open the file with a '.pending' suffix so it does not get picked up while we fill it
-//
-
-File outfile = OUTFILE;
-File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
-
-PrintWriter pw = new PrintWriter(tmpfile);
-
-BufferedReader br = null;
-
-jiffies_since_boot = 0L;
-now_nsecs = 0L;
-
 try {
+
+  populateSymbolTable(this);
+
+  SHOW_ERRORS = false;
+
+  //
+  // Verbose mode: add some labels (session, tty..)
+  // false by default
+  //
+  VERBOSE = false;
+   
+  //
+  // Take into account only processes that provide a custom pid (See SENSISIONID_KEY) 
+  // false by default
+  //
+
+  SENSISIONID_ONLY = false;
+
+  //
+  // The procDump binary available in the github repository is x86 64bits compliant. For the other platforms you have to recompile it.
+  // For more information See https://github.com/cityzendata/sensision/tree/master/procDump
+  //
+  PROCDUMP_COMMAND = "/opt/sensision/bin/procDump";
+
+  //
+  // Name of the environment variable to override the default pid
+  // You have to export this environment variable when process is starting
+  // Example: export SENSISIONID=warp10
+  //
+
+  SENSISIONID_KEY = "SENSISIONID";
+
+  //
+  // FILTER - If FILTER is not null, only process name that match (exact match) this FILTER will be retained
+  // FILTER_NAME = ['java','XXX'];
+  // If SENSISIONID_ONLY = true, only processes that provide a custom pid (SENSISIONID_KEY) and that match this FILTER will be retained
+  //
+  FILTER_NAME = null;
+
+  //
+  // Set _SC_CLK_TCK to the number of ticks per second (typically 100 on a Linux post 2.6)
+  // if on a post 2.6 kernel. On a pre 2.6 (< 2.6) kernel, set it to 0 so start time computation
+  // is correctly done (in pre 2.6 kernels, starttime is reported in jiffies instead of
+  // clock ticks)
+  //
+
+  _SC_CLK_TCK = 100;
+
+  //
+  // Minimum age of process (in ms) for its metrics to be reported
+  //
+
+  AGE_THRESHOLD = 900000;
+
+  //
+  // Quiet period after boot (in ms) during which we ignore processes (mostly system ones)
+  //
+
+  BOOT_QUIET_PERIOD = 0;
+
+  //
+  // Process groups for which no metrics are reported
+  //
+
+  EXCLUDED_PGRP = ['0','1'];
+
+  //
+  // Common labels for all metrics
+  //
+
+  Map<String,String> commonLabels = [:];
+
+  //
+  // Output file
+  //
+
+  long now = System.currentTimeMillis() * 1000L;
+
+  File OUTFILE = getMetricsFile('linux.proc.pid');
+
+  //
+  // Open the file with a '.pending' suffix so it does not get picked up while we fill it
+  //
+
+  File outfile = OUTFILE;
+  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+
+  PrintWriter pw = new PrintWriter(tmpfile);
+
+  BufferedReader br = null;
+
+  jiffies_since_boot = 0L;
+  now_nsecs = 0L;
 
   now = System.currentTimeMillis();
 
@@ -288,15 +295,16 @@ try {
     storeMetric(pw, now, 'linux.proc.pid.rss', labels, Long.valueOf(tokens[23]));
 
   }
+
+  //
+  // Move file to final location
+  //
+
+  tmpfile.renameTo(outfile);
+
 } catch (Exception e) {
   if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}
 }
-
-//
-// Move file to final location
-//
-
-tmpfile.renameTo(outfile);
