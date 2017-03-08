@@ -237,6 +237,10 @@ initConfig() {
   # log4j.properties
   cp ${SENSISION_HOME}/templates/log4j.properties.template ${SENSISION_HOME}/etc/log4j.properties
 
+  sed -i -e "s_^sensision\.home.*_sensision\.home = ${SENSISION_HOME}_" ${SENSISION_HOME}/templates/sensision.template
+  sed -i -e "s_^sensision\.scriptrunner\.root.*_sensision\.scriptrunner\.root = ${SENSISION_HOME}/scripts_" ${SENSISION_HOME}/templates/sensision.template
+  sed -i -e "s_sensisionLog\.File=.*_sensisionLog\.File=${SENSISION_HOME}/logs/nohup.out_" ${SENSISION_HOME}/etc/log4j.properties
+
   if [ "${WARP10_CONF}" != "" ]; then
     if [ -f ${WARP10_CONF} ]; then
       echo "Sensision: generate configuration with Warp10 conf/jar.."
@@ -304,7 +308,7 @@ start() {
     ln -s ${SENSISION_DATA_DIR}/targets /var/run/sensision/targets
     ln -s ${SENSISION_DATA_DIR}/queued /var/run/sensision/queued
   fi
-  
+
   #
   # Start..
   #
