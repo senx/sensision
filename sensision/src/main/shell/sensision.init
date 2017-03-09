@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Source function library.
-if [ -e /etc/rc.d/init.d/functions ];
-then
+if [ -e /etc/rc.d/init.d/functions ]; then
+
 #
 # sensision	Sensision metric collection service
 #
@@ -11,8 +11,8 @@ then
 
 # Source function library.
 . /etc/rc.d/init.d/functions
-elif [ -e /lib/lsb/init-functions ];
-then
+elif [ -e /lib/lsb/init-functions ]; then
+
 ### BEGIN INIT INFO
 # Provides:          sensision
 # Required-Start:
@@ -29,9 +29,40 @@ fi
 
 VERSION=@VERSION@
 
-SENSISION_HOME=/opt/sensision-${VERSION}
+OS=$(uname -s)
+
+#JAVA_HOME=/opt/java8
+
+if [ -z "$JAVA_HOME" ]; then
+  echo "JAVA_HOME not set";
+  exit 1
+fi
+
+#
+# WARP10 jar and config are required to generate Sensision tokens
+#
+#WARP10_JAR=
+#WARP10_CONF=
+
+#SENSISION_HOME=/opt/sensision-${VERSION}
+
+# If SENSISION_HOME is not defined, set it to the parent directory
+if [ -z "${SENSISION_HOME}" ]; then
+  if [ "Darwin" = "${OS}" ]
+  then
+    pushd $(dirname $0)/.. > /dev/null 2>&1
+    SENSISION_HOME=`pwd`
+    popd > /dev/null 2>&1
+  else
+    SENSISION_HOME=$(dirname $(readlink -f $0))/..
+  fi
+fi
+
 SENSISION_USER=sensision
+SENSISION_GROUP=sensision
+WARP10_GROUP=warp10
 SENSISION_CONFIG=${SENSISION_HOME}/etc/sensision.conf
+SENSISION_TOKENS=${SENSISION_HOME}/etc/sensision.tokens
 SENSISION_JAR=${SENSISION_HOME}/bin/sensision-${VERSION}.jar
 SENSISION_CP=${SENSISION_HOME}/etc:${SENSISION_JAR}
 SENSISION_CLASS=io.warp10.sensision.Main
@@ -39,15 +70,244 @@ SENSISION_HEAP=64m
 SENSISION_OPTS=-Dsensision.server.port=0
 export MALLOC_ARENA_MAX=1
 
-if [ "${JAVA_HOME}" = "" ]
-then
-  JAVA_HOME=/opt/java8
+#
+# Data directory that contains metrics, queued, targets directories
+#
+#SENSISION_DATA_DIR=/data
+
+if [ -z "${SENSISION_DATA_DIR}" ]; then
+  SENSISION_DATA_DIR=${SENSISION_HOME}
 fi
 
-start() {
-  if [ ! -h  "/var/run/sensision" ]; then
-    ln -s ${SENSISION_HOME}/data /var/run/sensision
+initConfig() {
+
+  echo "Init Sensision.."
+
+  # Fix ownership
+  chown -R ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_HOME}
+
+  # Fix permissions
+  echo "Fix permissions.."
+  # Everyone should have r+x permissions to SENSISION_HOME (targets, metrics)
+  chmod 755 ${SENSISION_HOME}
+  chmod 755 ${SENSISION_HOME}/bin
+  chmod 755 ${SENSISION_HOME}/etc
+  chmod 755 ${SENSISION_HOME}/templates
+  chmod 755 ${SENSISION_HOME}/logs
+  chmod 1733 ${SENSISION_HOME}/targets
+  chmod 1733 ${SENSISION_HOME}/metrics
+  chmod 700 ${SENSISION_HOME}/queued
+  chmod -R 755 ${SENSISION_HOME}/scripts
+  chmod 644 ${SENSISION_JAR}
+  chmod 755 ${SENSISION_HOME}/bin/sensision.init
+  chmod 4750 ${SENSISION_HOME}/bin/procDump
+
+  #
+  # ${SENSISION_HOME} != ${SENSISION_DATA_DIR}
+  # A dedicated data directory has been provided
+  # Move data to ${SENSISION_DATA_DIR}/metrics, ${SENSISION_DATA_DIR}/targets, ${SENSISION_DATA_DIR}/queued..
+  #
+  if [ "${SENSISION_DATA_DIR}" != "${SENSISION_HOME}" ]; then
+    echo "SENSISION_DATA_DIR: ${SENSISION_DATA_DIR}"
+
+    #
+    # ${SENSISION_DATA_DIR} exists ?
+    #
+    if [ ! -e ${SENSISION_DATA_DIR} ]; then
+      echo "${SENSISION_DATA_DIR} does not exist - Creating it..."
+      mkdir -p ${SENSISION_DATA_DIR}
+      if [ $? != 0 ]; then
+        echo "${SENSISION_DATA_DIR} creation failed"
+        exit 1
+      fi
+    fi
+
+    # force ownerships / permissions
+    chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_DATA_DIR}
+    # Everyone should have r+x permissions to SENSISION_DATA_DIR (targets, metrics)
+    chmod 755 ${SENSISION_DATA_DIR}
+
+    #
+    # Test access to SENSISION_DATA_DIR and its parent directories
+    #
+    su ${SENSISION_USER} -c "ls ${SENSISION_DATA_DIR} 2>&1"
+    if [ $? != 0 ]; then
+      echo "ERROR: Cannot access to ${SENSISION_DATA_DIR}"
+      exit 1
+    fi
+
+    # Move etc dir to ${SENSISION_DATA_DIR}
+    if [ -e ${SENSISION_DATA_DIR}/logs ]; then
+      echo "Error: ${SENSISION_DATA_DIR}/etc already exists"
+      exit 1
+    fi
+    su ${SENSISION_USER} -c "mv ${SENSISION_HOME}/etc ${SENSISION_DATA_DIR}/ 2>&1"
+    if [ $? != 0 ]; then
+      echo "ERROR: move ${SENSISION_HOME}/etc to ${SENSISION_DATA_DIR}"
+      exit 1
+    fi
+    ln -s ${SENSISION_DATA_DIR}/etc ${SENSISION_HOME}/etc
+    chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_DATA_DIR}/etc
+    chmod 755 ${SENSISION_DATA_DIR}/etc
+
+    # Move logs dir to ${SENSISION_DATA_DIR}
+    if [ -e ${SENSISION_DATA_DIR}/logs ]; then
+      echo "Error: ${SENSISION_DATA_DIR}/logs already exists"
+      exit 1
+    fi
+    su ${SENSISION_USER} -c "mv ${SENSISION_HOME}/logs ${SENSISION_DATA_DIR}/ 2>&1"
+    if [ $? != 0 ]; then
+      echo "ERROR: move ${SENSISION_HOME}/logs to ${SENSISION_DATA_DIR}"
+      exit 1
+    fi
+    ln -s ${SENSISION_DATA_DIR}/logs ${SENSISION_HOME}/logs
+    chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_DATA_DIR}/logs
+    chmod 755 ${SENSISION_DATA_DIR}/logs
+
+    # Move scripts dir to ${SENSISION_DATA_DIR}
+    if [ -e ${SENSISION_DATA_DIR}/scripts ]; then
+      echo "Error: ${SENSISION_DATA_DIR}/scripts already exists"
+      exit 1
+    fi
+    su ${SENSISION_USER} -c "mv ${SENSISION_HOME}/scripts ${SENSISION_DATA_DIR}/ 2>&1"
+    if [ $? != 0 ]; then
+      echo "ERROR: move ${SENSISION_HOME}/scripts to ${SENSISION_DATA_DIR}"
+      exit 1
+    fi
+    ln -s ${SENSISION_DATA_DIR}/scripts ${SENSISION_HOME}/scripts
+    chown -R ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_DATA_DIR}/scripts
+    chmod 775 ${SENSISION_DATA_DIR}/scripts
+
+    # Move metrics dir to ${SENSISION_DATA_DIR}
+    if [ -e ${SENSISION_DATA_DIR}/metrics ]; then
+      echo "Error: ${SENSISION_DATA_DIR}/metrics already exists"
+      exit 1
+    fi
+    su ${SENSISION_USER} -c "mv ${SENSISION_HOME}/metrics ${SENSISION_DATA_DIR}/ 2>&1"
+    if [ $? != 0 ]; then
+      echo "ERROR: move ${SENSISION_HOME}/metrics to ${SENSISION_DATA_DIR}"
+      exit 1
+    fi
+    ln -s ${SENSISION_DATA_DIR}/metrics ${SENSISION_HOME}/metrics
+    chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_DATA_DIR}/metrics
+    chmod 1733 ${SENSISION_DATA_DIR}/metrics
+
+    # Move targets dir to ${SENSISION_DATA_DIR}
+    if [ -e ${SENSISION_DATA_DIR}/targets ]; then
+      echo "Error: ${SENSISION_DATA_DIR}/targets already exists"
+      exit 1
+    fi
+    su ${SENSISION_USER} -c "mv ${SENSISION_HOME}/targets ${SENSISION_DATA_DIR}/ 2>&1"
+    if [ $? != 0 ]; then
+      echo "ERROR: move ${SENSISION_HOME}/targets to ${SENSISION_DATA_DIR}"
+      exit 1
+    fi
+    ln -s ${SENSISION_DATA_DIR}/targets ${SENSISION_HOME}/targets
+    chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_DATA_DIR}/targets
+    chmod 1733 ${SENSISION_DATA_DIR}/targets
+
+    # Move queued dir to ${SENSISION_DATA_DIR}
+    if [ -e ${SENSISION_DATA_DIR}/queued ]; then
+      echo "Error: ${SENSISION_DATA_DIR}/queued already exists"
+      exit 1
+    fi
+    su ${SENSISION_USER} -c "mv ${SENSISION_HOME}/queued ${SENSISION_DATA_DIR}/ 2>&1"
+    if [ $? != 0 ]; then
+      echo "ERROR: move ${SENSISION_HOME}/queued to ${SENSISION_DATA_DIR}"
+      exit 1
+    fi
+    ln -s ${SENSISION_DATA_DIR}/queued ${SENSISION_HOME}/queued
+    chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_DATA_DIR}/queued
+    chmod 700 ${SENSISION_DATA_DIR}/queued
+
   fi
+
+  # check /var/run/sensision does not exist during init..
+  if [ -e /var/run/sensision ]; then
+    echo "ERROR: /var/run/sensision already exists - Delete it before."
+    exit 1
+  fi
+
+  if [ -e /etc/init.d/sensision ]; then
+    echo "/etc/init.d/sensision already exists - Delete it.."
+    rm /etc/init.d/sensision
+  fi
+  ln -s ${SENSISION_HOME}/bin/sensision.init /etc/init.d/sensision
+
+  # log4j.properties
+  cp ${SENSISION_HOME}/templates/log4j.properties.template ${SENSISION_HOME}/etc/log4j.properties
+
+  if [ "${WARP10_CONF}" != "" ]; then
+    if [ -f ${WARP10_CONF} ]; then
+      echo "Sensision: generate configuration with Warp10 conf/jar.."
+      echo "WARP10_CONF: ${WARP10_CONF}"
+      echo "WARP10_JAR: ${WARP10_JAR}"
+      su ${SENSISION_USER} -c "${JAVA_HOME}/bin/java -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.sensision -puidg -t -ttl 3153600000000 ${WARP10_CONF}" > ${SENSISION_TOKENS}
+      # Slr I trust you...
+      TOKEN_TYPE="write"
+      WRITE_TOKEN="$(cat ${SENSISION_TOKENS} | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w "${TOKEN_TYPE}" | cut -d'|' -f 3 | tr -d '\n\r')"
+      cp ${SENSISION_HOME}/templates/sensision.template ${SENSISION_CONFIG}
+      sed -i 's/@warp:WriteToken@/'"${WRITE_TOKEN}"'/' ${SENSISION_CONFIG}
+      chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_CONFIG}
+      chmod 664 ${SENSISION_CONFIG}
+    else
+      echo "ERROR: '${WARP10_CONF}' does not exist. Skip generation of Sensision configuration."
+      exit 1
+    fi
+  else 
+    echo "'WARP10_CONF' is not defined. Skip generation of Sensision configuration - Copy template as it is"
+    cp ${SENSISION_HOME}/templates/sensision.template ${SENSISION_CONFIG}
+    chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_CONFIG}
+    chmod 664 ${SENSISION_CONFIG}
+    echo "Starting is going to be stopped - Update configuration '${SENSISION_CONFIG}' manually and restart Sensision"
+    exit 2
+  fi
+}
+
+start() {
+  # sensision user ?
+  if ! id -u "${SENSISION_USER}" >/dev/null 2>&1; then
+  echo "User '${SENSISION_USER}'' does not exist - Creating it.."
+    # Create user sensision and add it to warp10 group
+    if [ "`which useradd`" = "" ]; then
+      if [ "`which adduser`" != "" ]; then
+        adduser -D -s -H -h ${SENSISION_HOME} -s /bin/bash ${SENSISION_USER}
+        addgroup ${SENSISION_USER} ${WARP10_GROUP}
+      else
+        echo "Hmmm that's embarassing but I do not know how to create the ${SENSISION_USER} user with home directory ${SENSISION_HOME}, could you do it for me and run the script again?"
+        exit 1
+      fi
+    else
+      useradd -d ${SENSISION_HOME} -M -r ${SENSISION_USER} -G ${WARP10_GROUP} -s /bin/bash
+    fi
+  fi
+
+  #
+  # Config file exists ?
+  #
+  if [ ! -e ${SENSISION_CONFIG} ]; then
+    echo "Config file does not exist - Creating it from template..."
+    initConfig
+  fi
+
+  # /var/run/sensision may have been deleted after reboot
+  if [ ! -e /var/run/sensision ]; then
+    echo "Create /var/run/sensision.."
+    mkdir /var/run/sensision
+    if [ $? != 0 ]; then
+      echo "ERROR: Cannot create /var/run/sensision"
+      exit 1
+    fi
+    chown -R ${SENSISION_USER}:${SENSISION_GROUP} /var/run/sensision
+    chmod 755 /var/run/sensision
+    ln -s ${SENSISION_DATA_DIR}/metrics /var/run/sensision/metrics
+    ln -s ${SENSISION_DATA_DIR}/targets /var/run/sensision/targets
+    ln -s ${SENSISION_DATA_DIR}/queued /var/run/sensision/queued
+  fi
+  
+  #
+  # Start..
+  #
   su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/nohup.out 2>&1 &"
 }
 

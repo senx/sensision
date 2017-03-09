@@ -15,9 +15,9 @@ rm -rf ${ARCHIVE}
 # Create the directory hierarchy 
 mkdir ${ARCHIVE}
 cd ${ARCHIVE}
-mkdir -p ${SENSISION_HOME}/data/targets
-mkdir -p ${SENSISION_HOME}/data/metrics
-mkdir -p ${SENSISION_HOME}/data/queued
+mkdir -p ${SENSISION_HOME}/targets
+mkdir -p ${SENSISION_HOME}/metrics
+mkdir -p ${SENSISION_HOME}/queued
 mkdir -p ${SENSISION_HOME}/etc
 mkdir -p ${SENSISION_HOME}/logs
 mkdir -p ${SENSISION_HOME}/templates
@@ -31,7 +31,6 @@ cp ../src/main/shell/zk-sensision.sh ${SENSISION_HOME}/scripts
 
 # Copy init and startup scripts
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/shell/sensision.init > ${SENSISION_HOME}/bin/sensision.init
-sed -e "s/@VERSION@/${VERSION}/g" ../src/main/shell/sensision.bootstrap > ${SENSISION_HOME}/bin/sensision.bootstrap
 
 # log4j.properties
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties.template > ${SENSISION_HOME}/templates/log4j.properties.template
@@ -49,15 +48,13 @@ cp ../../procDump/procDump ${SENSISION_HOME}/bin/procDump
 chmod 755 ${SENSISION_HOME}/bin
 chmod 755 ${SENSISION_HOME}/etc
 chmod 755 ${SENSISION_HOME}/templates
-chmod 755 ${SENSISION_HOME}/data
 chmod 755 ${SENSISION_HOME}/logs
-chmod 1733 ${SENSISION_HOME}/data/targets
-chmod 1733 ${SENSISION_HOME}/data/metrics
-chmod 700 ${SENSISION_HOME}/data/queued
+chmod 1733 ${SENSISION_HOME}/targets
+chmod 1733 ${SENSISION_HOME}/metrics
+chmod 700 ${SENSISION_HOME}/queued
 chmod -R 755 ${SENSISION_HOME}/scripts
 chmod 644 ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
 chmod 755 ${SENSISION_HOME}/bin/sensision.init
-chmod 755 ${SENSISION_HOME}/bin/sensision.bootstrap
 chmod 4750 ${SENSISION_HOME}/bin/procDump
 
 # Build tar

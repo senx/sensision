@@ -21,39 +21,45 @@
 
 import static io.warp10.sensision.Utils.*;
 
-populateSymbolTable(this);
+try {
 
-//
-// Common labels for all metrics
-//
+  populateSymbolTable(this);
 
-Map<String,String> commonLabels = [:];
+  //
+  // Common labels for all metrics
+  //
 
-//
-// Output file
-//
+  Map<String,String> commonLabels = [:];
 
-long now = System.currentTimeMillis() * 1000L;
+  //
+  // Output file
+  //
 
-File OUTFILE = getMetricsFile('zookeeper');
+  long now = System.currentTimeMillis() * 1000L;
 
-//
-// Open the file with a '.pending' suffix so it does not get picked up while we fill it
-//
+  File OUTFILE = getMetricsFile('zookeeper');
 
-File outfile = OUTFILE;
-File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+  //
+  // Open the file with a '.pending' suffix so it does not get picked up while we fill it
+  //
 
-OutputStream out = new FileOutputStream(tmpfile);
+  File outfile = OUTFILE;
+  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
 
-def p = (sensision_home + "/zk-sensision.sh").execute();
+  OutputStream out = new FileOutputStream(tmpfile);
 
-p.waitForProcessOutput(out, System.err);
+  def p = (sensision_home + "/zk-sensision.sh").execute();
 
-out.close();
+  p.waitForProcessOutput(out, System.err);
 
-//
-// Move file to final location
-//
+  out.close();
 
-tmpfile.renameTo(outfile);
+  //
+  // Move file to final location
+  //
+
+  tmpfile.renameTo(outfile);
+
+} catch (Exception e) {
+  e.printStackTrace(System.err);
+}

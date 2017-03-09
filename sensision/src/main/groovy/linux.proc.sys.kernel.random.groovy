@@ -24,39 +24,39 @@
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
-populateSymbolTable(this);
-
-SHOW_ERRORS = false;
-
-//
-// Common labels for all metrics
-//
-
-Map<String,String> commonLabels = [:];
-
-//
-// Output file
-//
-
-long now = System.currentTimeMillis() * 1000L;
-
-File OUTFILE = getMetricsFile('linux.proc.sys.kernel.random');
-
-//
-// Open the file with a '.pending' suffix so it does not get picked up while we fill it
-//
-
-File outfile = OUTFILE;
-File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
-
-PrintWriter pw = new PrintWriter(tmpfile);
-
-BufferedReader br = null;
-
-labels = [:];
-labels.putAll(commonLabels);
-
 try {
+
+  populateSymbolTable(this);
+
+  SHOW_ERRORS = false;
+
+  //
+  // Common labels for all metrics
+  //
+
+  Map<String,String> commonLabels = [:];
+
+  //
+  // Output file
+  //
+
+  long now = System.currentTimeMillis() * 1000L;
+
+  File OUTFILE = getMetricsFile('linux.proc.sys.kernel.random');
+
+  //
+  // Open the file with a '.pending' suffix so it does not get picked up while we fill it
+  //
+
+  File outfile = OUTFILE;
+  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+
+  PrintWriter pw = new PrintWriter(tmpfile);
+
+  BufferedReader br = null;
+
+  labels = [:];
+  labels.putAll(commonLabels);
   
   br = new BufferedReader(new FileReader("/proc/sys/kernel/random/entropy_avail"));
 
@@ -71,15 +71,16 @@ try {
 
     storeMetric(pw, now, 'linux.proc.sys.kernel.random.entropy_avail', labels, entropy_avail);
   }
+
+  //
+  // Move file to final location
+  //
+
+  tmpfile.renameTo(outfile);
+
 } catch (Exception e) {
   if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}
 }
-
-//
-// Move file to final location
-//
-
-tmpfile.renameTo(outfile);
