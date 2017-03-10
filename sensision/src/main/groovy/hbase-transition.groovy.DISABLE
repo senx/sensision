@@ -43,9 +43,13 @@ try {
   def outputLines=[]
 
   //      
-  // default transition value: 0
+  // default transition/failed_open/failed_close: 0
   //
   metrics[0] = ['transition':0]
+  metrics[0] = ['failed_open':0]
+  metrics[0] = ['failed_close':0]
+  int nbFailedOpen = 0
+  int nbFailedClose = 0
 
   if (out) {
     out.eachLine { line ->
@@ -54,9 +58,16 @@ try {
         if( matcher.matches() ) {
           metrics[0].'transition' = matcher.group(1) as int
         }
+      } else if (line =~ /state\=FAILED_OPEN/) {
+        nbFailedOpen++
+      } else if (line =~ /state\=FAILED_CLOSE/) {
+        nbFailedClose++
       }
     }
   }
+
+  metrics[0].'failed_open' = nbFailedOpen
+  metrics[0].'failed_close' = nbFailedClose
 
   if (err) { 
     println err
@@ -76,7 +87,9 @@ try {
   long now = System.currentTimeMillis() * 1000L;
 
   useful_metrics = [
-    'transition':'hbase-transition'
+    'transition':'hbase-transition',
+    'failed_open':'hbase-failed_open',
+    'failed_close':'hbase-failed_close'
   ]
 
   metrics.each {metric ->
