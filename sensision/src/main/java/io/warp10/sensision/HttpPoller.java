@@ -149,7 +149,11 @@ public class HttpPoller extends Thread {
     
       pollables.clear();
 
-      Set<Integer> knownPorts = new HashSet<Integer>(ports.keySet());
+      Set<Integer> knownPorts = new HashSet<Integer>();
+      
+      synchronized(ports) {
+        knownPorts.addAll(ports.keySet());
+      }
       
       for (int port: knownPorts) {
 
@@ -306,8 +310,10 @@ public class HttpPoller extends Thread {
               // in a short while anyway.
               //
               if (ioe instanceof ConnectException) {
-                ports.get(tcpport).delete();
-                ports.remove(tcpport);
+                synchronized(ports) {
+                  ports.get(tcpport).delete();
+                  ports.remove(tcpport);
+                }
                 periodicities.remove(tcpport);
               }
             } finally {
