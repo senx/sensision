@@ -318,7 +318,8 @@ public class QueueForwarder extends Thread {
             }
           }
         }        
-      } catch (IOException ioe) {
+      } catch (Throwable t) {
+        LOGGER.error("Caught throwable while in 'run'", t);
       } finally {
         if (null != files) {
           try { files.close(); } catch (IOException ioe) {}
