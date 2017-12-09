@@ -309,7 +309,6 @@ public class QueueForwarder extends Thread {
             LOGGER.error("Caught IO exception while in 'run'", ioe);
             if (ioe instanceof ConnectException) {
               LOGGER.error("(ConnectException) url: " + this.url);
-              break;
             }
           } finally {
             idx += batchsize;
@@ -319,7 +318,8 @@ public class QueueForwarder extends Thread {
             }
           }
         }        
-      } catch (IOException ioe) {
+      } catch (Throwable t) {
+        LOGGER.error("Caught throwable while in 'run'", t);
       } finally {
         if (null != files) {
           try { files.close(); } catch (IOException ioe) {}
