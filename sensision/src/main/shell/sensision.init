@@ -89,17 +89,20 @@ initConfig() {
   # Fix permissions
   echo "Fix permissions.."
   # Everyone should have r+x permissions to SENSISION_HOME (targets, metrics)
-  chmod 755 ${SENSISION_HOME}
-  chmod 755 ${SENSISION_HOME}/bin
-  chmod 755 ${SENSISION_HOME}/etc
-  chmod 755 ${SENSISION_HOME}/templates
-  chmod 755 ${SENSISION_HOME}/logs
+  chmod 775 ${SENSISION_HOME}
+  chmod 775 ${SENSISION_HOME}/bin
+  chmod 775 ${SENSISION_HOME}/etc
+  chmod 775 ${SENSISION_HOME}/templates
+  chmod 775 ${SENSISION_HOME}/logs
   chmod 1733 ${SENSISION_HOME}/targets
   chmod 1733 ${SENSISION_HOME}/metrics
   chmod 700 ${SENSISION_HOME}/queued
-  chmod -R 755 ${SENSISION_HOME}/scripts
-  chmod 644 ${SENSISION_JAR}
-  chmod 755 ${SENSISION_HOME}/bin/sensision.init
+  chmod -R 775 ${SENSISION_HOME}/scripts
+  chmod 664 ${SENSISION_JAR}
+  chmod 775 ${SENSISION_HOME}/bin/sensision.init
+
+  # procDump: specific acls
+  chown root:sensision ${SENSISION_HOME}/bin/procDump
   chmod 4750 ${SENSISION_HOME}/bin/procDump
 
   #
