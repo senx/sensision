@@ -71,6 +71,11 @@ SENSISION_OPTS=-Dsensision.server.port=0
 export MALLOC_ARENA_MAX=1
 
 #
+# PID File
+#
+PID_FILE=${SENSISION_HOME}/logs/sensision.pid
+
+#
 # Data directory that contains metrics, queued, targets directories
 #
 #SENSISION_DATA_DIR=/data
@@ -289,6 +294,11 @@ start() {
     fi
   fi
 
+  if [ -e ${PID_FILE} ]; then
+    echo "Start failed! - A Sensision instance is currently running"
+    exit 1
+  fi
+
   #
   # Config file exists ?
   #
@@ -316,16 +326,28 @@ start() {
   # Start..
   #
   su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/nohup.out 2>&1 &"
+
+  echo $! > ${PID_FILE}
+
+  if [ ! -e ${PID_FILE} ]; then
+    echo "Start failed !"
+    exit 1
+  fi
 }
 
 stop() {
-  JAR=`basename ${SENSISION_JAR}`
-  kill `su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${SENSISION_CLASS}|cut -f 1 -d' '"`
+  if [ -e ${PID_FILE} ]; then
+    kill `su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${SENSISION_CLASS}|cut -f 1 -d' '"`
+    rm -f ${PID_FILE}
+  else
+    echo "No instance of Sensision is currently running"
+  fi
 }
 
 status() {
-  JAR=`basename ${SENSISION_JAR}`
-  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${SENSISION_CLASS}"
+  if [ -e ${PID_FILE} ]; then
+    su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${SENSISION_CLASS}"
+  fi
 }
 
 # See how we were called.
@@ -337,8 +359,8 @@ case "$1" in
 	stop
 	;;
   status)
-        status
-        ;;
+    status
+    ;;
   *)
 	echo $"Usage: $0 {start|stop|status}"
 	exit 2
