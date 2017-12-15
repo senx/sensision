@@ -23,6 +23,8 @@ import static io.warp10.sensision.Utils.*;
 
 try {
 
+  SHOW_ERRORS = false;
+
   populateSymbolTable(this);
 
   //
@@ -47,11 +49,22 @@ try {
   File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
 
   OutputStream out = new FileOutputStream(tmpfile);
+  PrintWriter pw = new PrintWriter(out);
 
   def p = (sensision_home + "/zk-sensision.sh").execute();
 
-  p.waitForProcessOutput(out, System.err);
+  p.text.eachLine {
+    pw.println(it);
+  }
 
+  p.waitForOrKill(4000);
+  pw.flush();
+
+  if (p.exitValue() && SHOW_ERRORS) {
+    System.err.println("[ERROR] - " + ${p.getErrorStream()});
+  }
+
+  pw.close()
   out.close();
 
   //

@@ -8,7 +8,7 @@ ts=`date +%s`000000
 for command in 'mntr'
 do
 #  netstat -an|grep LISTEN|grep ${ZOOKEEPER_PORT}|sed -e 's/:2181 .*//' -e 's/.* //'|while read ip;
-ifconfig -a|grep 'inet addr'|sed -e 's/^.*addr://' -e 's/ .*//'|while read ip
+  ifconfig -a|grep inet|grep -v 'inet6'|sed -e 's/^.*inet\s\(addr:\)\?//'|awk '{ print $1 }'|while read ip;
   do
     echo "${command}"|nc $ip ${ZOOKEEPER_PORT};
   done | while read k v

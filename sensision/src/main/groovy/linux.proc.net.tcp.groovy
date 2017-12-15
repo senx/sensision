@@ -21,6 +21,10 @@
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
+BufferedReader br = null;
+PrintWriter pw = null;
+File tmpfile = null;
+
 try {
 
   populateSymbolTable(this);
@@ -97,11 +101,9 @@ try {
   //
 
   File outfile = OUTFILE;
-  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+  tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
 
-  PrintWriter pw = new PrintWriter(tmpfile);
-
-  BufferedReader br = null;
+  pw = new PrintWriter(tmpfile);
 
   counters = [:];
 
@@ -273,5 +275,12 @@ try {
 } catch (Exception e) {
   if (SHOW_ERRORS) { e.printStackTrace(System.err); }
 } finally {
-  try { if (null != pw) pw.close(); } catch (IOException ioe) {}
+  try {
+    if (null != pw) {
+      pw.close();
+      if ((tmpfile.exists()) && (0 == tmpfile.length())) {
+        tmpfile.delete()
+      }
+    }
+  } catch (IOException ioe) {}
 }
