@@ -16,6 +16,7 @@
 
 package io.warp10.sensision;
 
+import io.warp10.Revision;
 import io.warp10.sensision.FilePoller;
 
 import java.io.BufferedReader;
@@ -230,7 +231,7 @@ public class Sensision {
         }
       }
     }
-    
+
     // Extract default location
     if (null != System.getProperty(SENSISION_DEFAULT_LOCATION)) {
       try {

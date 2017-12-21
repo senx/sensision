@@ -16,6 +16,8 @@
 
 package io.warp10.sensision;
 
+import io.warp10.Revision;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -89,7 +91,9 @@ public class Main {
     if ("true".equals(props.getProperty(Sensision.SENSISION_SCRIPTRUNNER, "false"))) {
       runner = new ScriptRunner(props);
     }
-    
+
+    Sensision.set(SensisionConstants.SENSISION_CLASS_SENSISION_REVISION, Sensision.defaultLabels, Revision.REVISION);
+
     //
     // Loop forever...
     //
