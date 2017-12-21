@@ -37,8 +37,10 @@ import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
 
@@ -204,6 +206,8 @@ public class QueueForwarder extends Thread {
           
           HttpURLConnection conn = null;
 
+          long count = 0;
+          
           try {
             if (null == this.proxy) {
               conn = (HttpURLConnection) this.url.openConnection();
@@ -276,6 +280,7 @@ public class QueueForwarder extends Thread {
                 if (!this.deduplicationManager.isDuplicate(line)) {
                   pw.print(line);
                   pw.print("\r\n");
+                  count++;
                 }
               }
                           
@@ -311,6 +316,13 @@ public class QueueForwarder extends Thread {
               LOGGER.error("(ConnectException) url: " + this.url);
             }
           } finally {
+            
+            Map<String,String> labels = new HashMap<String,String>();
+            labels.put(SensisionConstants.SENSISION_LABEL_QUEUE, this.queue);
+            
+            Sensision.update(SensisionConstants.SENSISION_CLASS_QF_RUNS, labels, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_QF_DATAPOINTS, labels, count);
+            
             idx += batchsize;
             
             if (null != conn) {

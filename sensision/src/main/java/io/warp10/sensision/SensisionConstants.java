@@ -17,7 +17,16 @@
 package io.warp10.sensision;
 
 public class SensisionConstants {
+  /**
+   * Number of datapoints forwarded by a QueueForwarder
+   */
   public static final String SENSISION_CLASS_QF_DATAPOINTS = "sensision.qf.datapoints";
+
+  /**
+   * Number of runs of a QueueForwarder
+   */
+  public static final String SENSISION_CLASS_QF_RUNS = "sensision.qf.runs";
+
   public static final String SENSISION_CLASS_QM_DATAPOINTS = "sensision.qm.datapoints";
   
   public static final String SENSISION_LABEL_QUEUE = "queue";
