@@ -325,9 +325,7 @@ start() {
   #
   # Start..
   #
-  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/nohup.out 2>&1 &"
-
-  echo $! > ${PID_FILE}
+  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/nohup.out 2>&1 & echo $! > ${PID_FILE}"
 
   if [ ! -e ${PID_FILE} ]; then
     echo "Start failed !"
