@@ -30,4 +30,9 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_QM_DATAPOINTS = "sensision.qm.datapoints";
   
   public static final String SENSISION_LABEL_QUEUE = "queue";
+
+  /**
+   * Revision
+   */
+  public static final String SENSISION_CLASS_SENSISION_REVISION = "sensision.revision";
 }
