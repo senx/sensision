@@ -325,10 +325,11 @@ start() {
   #
   # Start..
   #
-  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/nohup.out 2>&1 & echo $! > ${PID_FILE}"
+  su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/java -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/nohup.out 2>&1 & echo \$! > ${PID_FILE}"
 
-  if [ ! -e ${PID_FILE} ]; then
+  if [ ! -e ${PID_FILE} ] || [ "`su \"${SENSISION_USER}\" -c \"${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '\"`" == "" ]; then
     echo "Start failed !"
+    rm -f ${PID_FILE}
     exit 1
   fi
 }
@@ -336,15 +337,18 @@ start() {
 stop() {
   if [ -e ${PID_FILE} ] && [ "`su \"${SENSISION_USER}\" -c \"${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '\"`" != "" ]; then
     kill `su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '"`
-    rm -f ${PID_FILE}
   else
     echo "No instance of Sensision is currently running"
   fi
+  rm -f ${PID_FILE}
 }
 
 status() {
-  if [ -e ${PID_FILE} ]; then
+  if [ -e ${PID_FILE} ] && [ "`su \"${SENSISION_USER}\" -c \"${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '\"`" != "" ]; then
     su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})"
+  else
+    echo "No instance of Sensision is currently running"
+    exit 1
   fi
 }
 
