@@ -334,8 +334,8 @@ start() {
 }
 
 stop() {
-  if [ -e ${PID_FILE} ]; then
-    kill `su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${SENSISION_CLASS}|cut -f 1 -d' '"`
+  if [ -e ${PID_FILE} ] && [ "`su \"${SENSISION_USER}\" -c \"${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '\"`" != "" ]; then
+    kill `su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})|cut -f 1 -d' '"`
     rm -f ${PID_FILE}
   else
     echo "No instance of Sensision is currently running"
@@ -344,7 +344,7 @@ stop() {
 
 status() {
   if [ -e ${PID_FILE} ]; then
-    su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -l|grep ${SENSISION_CLASS}"
+    su "${SENSISION_USER}" -c "${JAVA_HOME}/bin/jps -lm|grep -wE $(cat ${PID_FILE})"
   fi
 }
 
