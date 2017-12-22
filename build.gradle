@@ -272,6 +272,7 @@ project(':sensision') {
     key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
     publications = [ 'sensisionService' ]
+    publish = true
 
     pkg {
       repo = 'generic'
@@ -393,6 +394,7 @@ project(':sensision-lib') {
     key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
     publications = [ 'sensisionlib' ]
+    publish = true
 
     pkg {
       repo = 'maven'
