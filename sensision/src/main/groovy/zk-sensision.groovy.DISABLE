@@ -21,6 +21,8 @@
 
 import static io.warp10.sensision.Utils.*;
 
+PrintWriter pw = null;
+
 try {
 
   SHOW_ERRORS = false;
@@ -49,7 +51,7 @@ try {
   File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
 
   OutputStream out = new FileOutputStream(tmpfile);
-  PrintWriter pw = new PrintWriter(out);
+  pw = new PrintWriter(out);
 
   def p = (sensision_home + "/zk-sensision.sh").execute();
 
