@@ -24,6 +24,9 @@
 import java.io.PrintWriter;
 import static io.warp10.sensision.Utils.*;
 
+BufferedReader br = null;
+PrintWriter pw = null;
+
 try {
 
   populateSymbolTable(this);
@@ -51,9 +54,7 @@ try {
   File outfile = OUTFILE;
   File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
 
-  PrintWriter pw = new PrintWriter(tmpfile);
-
-  BufferedReader br = null;
+  pw = new PrintWriter(tmpfile);
 
   labels = [:];
   labels.putAll(commonLabels);

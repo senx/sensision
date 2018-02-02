@@ -145,7 +145,7 @@ initConfig() {
     fi
 
     # Move etc dir to ${SENSISION_DATA_DIR}
-    if [ -e ${SENSISION_DATA_DIR}/logs ]; then
+    if [ -e ${SENSISION_DATA_DIR}/etc ]; then
       echo "Error: ${SENSISION_DATA_DIR}/etc already exists"
       exit 1
     fi
