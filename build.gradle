@@ -168,6 +168,8 @@ subprojects {
       exclude module: 'jmxri'
     }
 
+    compile group:'com.google.guava', name:'guava', version: '19.0'
+
     tools files('tools/jarjar-1.4.jar')
 
     //UPLOAD ARTIFACTS THROUGH SSH
@@ -227,6 +229,7 @@ project(':sensision') {
     from {
       configurations.compile.collect {
         it.isDirectory() ? it : zipTree(it).matching {
+          include { it.toString().contains('guava') }
           include { it.toString().contains('jetty') }
           include { it.toString().contains('javax.servlet') }
           include { it.toString().contains('servlet-api') }
