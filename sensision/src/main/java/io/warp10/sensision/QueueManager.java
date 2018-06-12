@@ -186,6 +186,8 @@ public class QueueManager extends Thread {
           topfiles.add(iterator.next());
         }
         
+        iterator = topfiles.iterator();
+        
         long now = System.currentTimeMillis();
 
         //
