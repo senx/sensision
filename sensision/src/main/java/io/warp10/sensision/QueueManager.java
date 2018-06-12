@@ -53,6 +53,8 @@ import java.util.zip.GZIPOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.MinMaxPriorityQueue;
+
 /**
  * This class periodically scans the 'queued' directory and takes
  * care of the top N '.metrics' files, ventilating their content in various '.queued' files
@@ -175,8 +177,14 @@ public class QueueManager extends Thread {
         };
 
         files = Files.newDirectoryStream(this.queueDir.toPath(), filter);
-
+        
         Iterator<Path> iterator = files.iterator();
+
+        MinMaxPriorityQueue<Path> topfiles = MinMaxPriorityQueue.maximumSize(this.topn).create();
+        
+        while(iterator.hasNext()) {
+          topfiles.add(iterator.next());
+        }
         
         long now = System.currentTimeMillis();
 

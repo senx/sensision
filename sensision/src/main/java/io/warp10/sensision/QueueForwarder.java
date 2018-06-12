@@ -47,6 +47,8 @@ import java.util.zip.GZIPOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.MinMaxPriorityQueue;
+
 /**
  * This class periodically scans the 'queued' directory and takes
  * care of the top N files, sending their content to Cityzen Data
@@ -190,6 +192,18 @@ public class QueueForwarder extends Thread {
         int idx = 0;
         
         Iterator<Path> iterator = files.iterator();
+        
+        MinMaxPriorityQueue<Path> topfiles = MinMaxPriorityQueue.maximumSize(this.topn).create();
+        
+        while(iterator.hasNext()) {
+          topfiles.add(iterator.next());
+        }
+                
+        iterator = topfiles.iterator();
+        
+        //
+        // We should populate a list of the top N files, using a priority queue/sorted list and then process those files
+        //
         
         while (null != files && idx < this.topn && iterator.hasNext()) {
           int batchsize = 0;
