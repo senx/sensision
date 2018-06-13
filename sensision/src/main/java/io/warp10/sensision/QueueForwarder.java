@@ -195,10 +195,17 @@ public class QueueForwarder extends Thread {
         
         MinMaxPriorityQueue<Path> topfiles = MinMaxPriorityQueue.maximumSize(this.topn).create();
         
+        int queued = 0;
+        
         while(iterator.hasNext()) {
           topfiles.add(iterator.next());
+          queued++;
         }
                 
+        Map<String,String> labels = new HashMap<String,String>();
+        labels.put(SensisionConstants.SENSISION_LABEL_QUEUE, queue);
+        Sensision.set(SensisionConstants.SENSISION_CLASS_QF_QUEUED, labels, queued);
+
         iterator = topfiles.iterator();
         
         //

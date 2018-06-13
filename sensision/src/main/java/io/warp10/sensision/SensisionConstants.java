@@ -27,6 +27,11 @@ public class SensisionConstants {
    */
   public static final String SENSISION_CLASS_QF_RUNS = "sensision.qf.runs";
 
+  /**
+   * Number of queued files per queue
+   */
+  public static final String SENSISION_CLASS_QF_QUEUED = "sensision.qf.queued";
+  
   public static final String SENSISION_CLASS_QM_DATAPOINTS = "sensision.qm.datapoints";
   
   public static final String SENSISION_LABEL_QUEUE = "queue";
