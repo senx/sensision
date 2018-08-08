@@ -244,7 +244,7 @@ bootstrap() {
     echo "/etc/init.d/sensision already exists - Delete it.."
     rm /etc/init.d/sensision
   fi
-  ln -sf ${SENSISION_HOME}/bin/sensision.init /etc/init.d/sensision
+  ln -s ${SENSISION_HOME}/bin/sensision.init /etc/init.d/sensision
 
   # log4j.properties
   cp ${SENSISION_HOME}/templates/log4j.properties.template ${SENSISION_HOME}/etc/log4j.properties
