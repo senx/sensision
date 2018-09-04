@@ -338,7 +338,7 @@ public class QueueForwarder extends Thread {
             }
           } finally {
             
-            Map<String,String> labels = new HashMap<String,String>();
+            labels = new HashMap<String,String>();
             labels.put(SensisionConstants.SENSISION_LABEL_QUEUE, this.queue);
             
             Sensision.update(SensisionConstants.SENSISION_CLASS_QF_RUNS, labels, 1);
