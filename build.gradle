@@ -280,7 +280,7 @@ project(':sensision') {
       name = archivesBaseName
       userOrg = 'senx'
       licenses = ['Apache-2.0']
-      vcsUrl = 'https://github.com/cityzendata/sensision.git'
+      vcsUrl = 'https://github.com/senx/sensision.git'
       version {
         name = getVersionName('')
         released = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ").format(new Date())
