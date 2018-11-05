@@ -401,6 +401,7 @@ project(':sensision-lib') {
     pkg {
       repo = 'maven'
       name = archivesBaseName
+      userOrg = 'senx'
       licenses = ['Apache-2.0']
       vcsUrl = 'https://github.com/cityzendata/sensision.git'
       version {
