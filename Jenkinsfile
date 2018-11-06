@@ -39,7 +39,7 @@ pipeline {
         stage('Package') {
             steps {
                 sh './gradlew sensisionLib sensisionService -x test'
-                archiveArtifacts "build/libs/*.jar"
+                archiveArtifacts "sensision/build/libs/*.jar"
             }
         }
 
