@@ -27,7 +27,7 @@ ARCHIVE=./archive
 # Remove existing archive dir
 rm -rf ${ARCHIVE}
 
-# Create the directory hierarchy 
+# Create the directory hierarchy
 mkdir ${ARCHIVE}
 cd ${ARCHIVE}
 mkdir -p ${SENSISION_HOME}/targets
@@ -53,6 +53,9 @@ sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties.template > ${SENSIS
 # Copy template configuration
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/sensision.template > ${SENSISION_HOME}/templates/sensision.template
 
+# Copy WarpScript used by TokenGen
+cp ../../etc/sensision-tokengen.mc2 ${SENSISION_HOME}/templates/sensision-tokengen.mc2
+
 # Copy jar
 cp ../build/libs/sensision-service-${VERSION}.jar ${SENSISION_HOME}/bin/sensision-${VERSION}.jar
 
@@ -74,3 +77,8 @@ chmod 4750 ${SENSISION_HOME}/bin/procDump
 
 # Build tar
 tar zcpf ../build/libs/sensision-service-${VERSION}.tar.gz ${SENSISION_HOME}
+
+
+# Remove archive dir
+cd -
+rm -rf ${ARCHIVE}
