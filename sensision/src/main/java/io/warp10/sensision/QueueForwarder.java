@@ -323,13 +323,15 @@ public class QueueForwarder extends Thread {
             } else {
               LOGGER.error(url + " failed - error code: " + conn.getResponseCode());
               InputStream is = conn.getErrorStream();
-              BufferedReader errorReader = new BufferedReader(new InputStreamReader(is));
-              String line = errorReader.readLine();
-              while (null != line) {
-                LOGGER.error(line);
-                line = errorReader.readLine();
+              if (null != is) {
+                BufferedReader errorReader = new BufferedReader(new InputStreamReader(is));
+                String line = errorReader.readLine();
+                while (null != line) {
+                  LOGGER.error(line);
+                  line = errorReader.readLine();
+                }
+                is.close();
               }
-              is.close();
             }
           } catch (IOException ioe) {
             LOGGER.error("Caught IO exception while in 'run'", ioe);
