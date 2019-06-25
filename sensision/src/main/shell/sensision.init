@@ -150,6 +150,25 @@ isStarted() {
   return 1
 }
 
+CONFIG_FILES=
+getConfigFiles() {
+  path1=""
+  path2=""
+
+  # Get standard configuration directory
+  if [[ -d "${WARP10_CONFIG_DIR}" ]]; then
+    path1=${WARP10_CONFIG_DIR}
+  fi
+
+  # Get additional configuration directory
+  if [[ -n "${WARP10_EXT_CONFIG_DIR}" && -d "${WARP10_EXT_CONFIG_DIR}" ]]; then
+    path2=${WARP10_EXT_CONFIG_DIR}
+  fi
+
+  # Get config file path separate by space
+  CONFIG_FILES=`find ${path1} ${path2} -not -path "*/\.*" -name "*.conf" | tr '\n' ' ' 2> /dev/null`
+}
+
 bootstrap() {
   echo "Bootstrap Sensision.."
 
@@ -274,8 +293,21 @@ bootstrap() {
       echo "Sensision: generate configuration with Warp10 conf/jar.."
       echo "WARP10_CONF: ${WARP10_CONF}"
       echo "WARP10_JAR: ${WARP10_JAR}"
-      su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf -q -a io.warp10.sensision -puidg -t -ttl 3153600000000 ${WARP10_CONF}" > ${SENSISION_TOKENS}
-      # Slr I trust you...
+
+      getConfigFiles
+
+      # Edit the sensision-tokengen.mc2 to use or not the secret
+      secret=`su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.WarpConfig ${CONFIG_FILES} 'token.secret' | grep 'token.secret' | sed -e 's/^.*=//'"`
+      if [[ "${secret}"  != "null" ]]; then
+        sed -i -e "s|^{{secret}}|'"${secret}"'|" ${SENSISION_HOME}/templates/sensision-tokengen.mc2
+      else
+        sed -i -e "s|^{{secret}}||" ${SENSISION_HOME}/templates/sensision-tokengen.mc2
+      fi
+
+      # Generate initial tokens
+      su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.TokenGen ${CONFIG_FILES} ${SENSISION_HOME}/templates/sensision-tokengen.mc2 ${SENSISION_TOKENS}"
+      sed  -i 's/^.\{1\}//;$ s/.$//' ${SENSISION_TOKENS} # Remove first and last character
+
       TOKEN_TYPE="write"
       WRITE_TOKEN="$(cat ${SENSISION_TOKENS} | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w "${TOKEN_TYPE}" | cut -d'|' -f 3 | tr -d '\n\r')"
       cp ${SENSISION_HOME}/templates/sensision.template ${SENSISION_CONFIG}
@@ -329,7 +361,7 @@ start() {
   #
   # Start..
   #
-  su "${SENSISION_USER}" -c "${JAVACMD} -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/nohup.out 2>&1 & echo \$! > ${PID_FILE}"
+  su "${SENSISION_USER}" -c "${JAVACMD} -Xmx${SENSISION_HEAP} ${SENSISION_OPTS} -Dsensision.config=${SENSISION_CONFIG} -cp ${SENSISION_CP} ${SENSISION_CLASS} >> ${SENSISION_HOME}/logs/sensision.log 2>&1 & echo \$! > ${PID_FILE}"
 
   isStarted
   if [ $? -eq 1 ]; then
