@@ -70,10 +70,10 @@ Please set the JAVA_HOME variable in your environment or in $0 to match the loca
 fi
 
 #
-# WARP10 jar and config are required to generate Sensision tokens
+# WARP10 jar and config dir are required to generate Sensision tokens
 #
 #WARP10_JAR=
-#WARP10_CONF=
+#WARP10_CONFIG_DIR=
 
 #SENSISION_HOME=/opt/sensision-${VERSION}
 
@@ -152,21 +152,15 @@ isStarted() {
 
 CONFIG_FILES=
 getConfigFiles() {
-  path1=""
-  path2=""
-
   # Get standard configuration directory
   if [[ -d "${WARP10_CONFIG_DIR}" ]]; then
-    path1=${WARP10_CONFIG_DIR}
+    CONFIG_FILES=`find ${WARP10_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2> /dev/null`
   fi
 
   # Get additional configuration directory
   if [[ -n "${WARP10_EXT_CONFIG_DIR}" && -d "${WARP10_EXT_CONFIG_DIR}" ]]; then
-    path2=${WARP10_EXT_CONFIG_DIR}
+    CONFIG_FILES="${CONFIG_FILES} `find ${WARP10_EXT_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2> /dev/null`"
   fi
-
-  # Get config file path separate by space
-  CONFIG_FILES=`find ${path1} ${path2} -not -path "*/\.*" -name "*.conf" | tr '\n' ' ' 2> /dev/null`
 }
 
 bootstrap() {
@@ -288,38 +282,33 @@ bootstrap() {
   sed -i -e "s_^sensision\.scriptrunner\.root.*_sensision\.scriptrunner\.root = ${SENSISION_HOME}/scripts_" ${SENSISION_HOME}/templates/sensision.template
   sed -i -e "s_sensisionLog\.File=.*_sensisionLog\.File=${SENSISION_HOME}/logs/nohup.out_" ${SENSISION_HOME}/etc/log4j.properties
 
-  if [ "${WARP10_CONF}" != "" ]; then
-    if [ -f ${WARP10_CONF} ]; then
-      echo "Sensision: generate configuration with Warp10 conf/jar.."
-      echo "WARP10_CONF: ${WARP10_CONF}"
-      echo "WARP10_JAR: ${WARP10_JAR}"
+  getConfigFiles
+  if [ "${CONFIG_FILES}" != "" ]; then
+    echo "Sensision: generate configuration with Warp10 conf/jar.."
+    echo "WARP10_CONFIG_DIR: ${WARP10_CONFIG_DIR}"
+    echo "WARP10_EXT_CONFIG_DIR: ${WARP10_EXT_CONFIG_DIR}"
+    echo "WARP10_JAR: ${WARP10_JAR}"
 
-      getConfigFiles
-
-      # Edit the sensision-tokengen.mc2 to use or not the secret
-      secret=`su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.WarpConfig ${CONFIG_FILES} 'token.secret' | grep 'token.secret' | sed -e 's/^.*=//'"`
-      if [[ "${secret}"  != "null" ]]; then
-        sed -i -e "s|^{{secret}}|'"${secret}"'|" ${SENSISION_HOME}/templates/sensision-tokengen.mc2
-      else
-        sed -i -e "s|^{{secret}}||" ${SENSISION_HOME}/templates/sensision-tokengen.mc2
-      fi
-
-      # Generate initial tokens
-      su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.TokenGen ${CONFIG_FILES} ${SENSISION_HOME}/templates/sensision-tokengen.mc2 ${SENSISION_TOKENS}"
-      sed  -i 's/^.\{1\}//;$ s/.$//' ${SENSISION_TOKENS} # Remove first and last character
-
-      TOKEN_TYPE="write"
-      WRITE_TOKEN="$(cat ${SENSISION_TOKENS} | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w "${TOKEN_TYPE}" | cut -d'|' -f 3 | tr -d '\n\r')"
-      cp ${SENSISION_HOME}/templates/sensision.template ${SENSISION_CONFIG}
-      sed -i 's/@warp:WriteToken@/'"${WRITE_TOKEN}"'/' ${SENSISION_CONFIG}
-      chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_CONFIG}
-      chmod 664 ${SENSISION_CONFIG}
+    # Edit the sensision-tokengen.mc2 to use or not the secret
+    secret=`su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.WarpConfig ${CONFIG_FILES} 'token.secret' | grep 'token.secret' | sed -e 's/^.*=//'"`
+    if [[ "${secret}"  != "null" ]]; then
+      sed -i -e "s|^{{secret}}|'"${secret}"'|" ${SENSISION_HOME}/templates/sensision-tokengen.mc2
     else
-      echo "ERROR: '${WARP10_CONF}' does not exist. Skip generation of Sensision configuration."
-      exit 1
+      sed -i -e "s|^{{secret}}||" ${SENSISION_HOME}/templates/sensision-tokengen.mc2
     fi
+
+    # Generate initial tokens
+    su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.TokenGen ${CONFIG_FILES} ${SENSISION_HOME}/templates/sensision-tokengen.mc2 ${SENSISION_TOKENS}"
+    sed  -i 's/^.\{1\}//;$ s/.$//' ${SENSISION_TOKENS} # Remove first and last character
+
+    TOKEN_TYPE="write"
+    WRITE_TOKEN="$(cat ${SENSISION_TOKENS} | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w "${TOKEN_TYPE}" | cut -d'|' -f 3 | tr -d '\n\r')"
+    cp ${SENSISION_HOME}/templates/sensision.template ${SENSISION_CONFIG}
+    sed -i 's/@warp:WriteToken@/'"${WRITE_TOKEN}"'/' ${SENSISION_CONFIG}
+    chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_CONFIG}
+    chmod 664 ${SENSISION_CONFIG}
   else
-    echo "'WARP10_CONF' is not defined. Skip generation of Sensision configuration - Copy template as it is"
+    echo "No file found in '${WARP10_CONFIG_DIR}' or 'WARP10_CONFIG_DIR' is not set. Skip generation of Sensision configuration - Copy template as it is"
     cp ${SENSISION_HOME}/templates/sensision.template ${SENSISION_CONFIG}
     chown ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_CONFIG}
     chmod 664 ${SENSISION_CONFIG}
