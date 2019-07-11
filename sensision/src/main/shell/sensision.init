@@ -197,7 +197,8 @@ bootstrap() {
   #
   echo "Fix ownership.."
   echo "SENSISION_HOME: ${SENSISION_HOME}"
-  chown -R ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_HOME}
+  # Trailing slash is needed when ${SENSISION_HOME} is a symlink
+  chown -R ${SENSISION_USER}:${SENSISION_GROUP} ${SENSISION_HOME}/
 
   #
   # Fix permissions
