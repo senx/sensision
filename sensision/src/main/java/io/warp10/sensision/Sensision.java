@@ -583,6 +583,8 @@ public class Sensision {
     
     if (null != ttl) {
       container.expire = System.currentTimeMillis() + ttl;
+    } else {
+      container.expire = null;
     }
   }
 
