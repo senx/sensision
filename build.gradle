@@ -365,6 +365,8 @@ project(':sensision-lib') {
     publications {
       sensisionlib(MavenPublication) {
         artifact sensisionLib
+        artifact sourceJar
+        artifact javadocJar
         groupId 'io.warp10'
         artifactId archivesBaseName
         version version
