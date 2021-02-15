@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ buildscript {
 }
 
 plugins {
+  id 'java'
+  id 'eclipse'
   id "com.jfrog.bintray" version "1.7.3"
 }
 
@@ -82,9 +84,8 @@ subprojects {
   apply plugin: 'java'
   apply plugin: 'idea'
   apply plugin: 'eclipse'
-  apply plugin: 'maven'
+  apply plugin: 'signing'
   apply plugin: 'maven-publish'
-  apply plugin: 'com.jfrog.bintray'
 
   group = 'io.warp10'
 
@@ -154,7 +155,7 @@ subprojects {
     compile group: 'junit', name: 'junit', version: '4.4'
     compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.3.9'
     // Hadoop for SensisionSink
-    compile group: 'org.apache.hadoop', name: 'hadoop-common', version: '2.5.0'
+    compile group: 'org.apache.hadoop', name: 'hadoop-common', version: '2.10.1'
     //compile group: 'commons-configuration', name: 'commons-configuration', version: '1.6'
     // Yammer Metrics for SensisionReporter
     compile group: 'com.yammer.metrics', name: 'metrics-core', version: '2.2.0'
@@ -175,21 +176,6 @@ subprojects {
     //UPLOAD ARTIFACTS THROUGH SSH
     deployerJars 'org.apache.maven.wagon:wagon-ssh-external:2.8'
   }
-
-  // DEPLOY ON MAVEN REPO WITH SCP
-  uploadArchives {
-    repositories {
-      repositories.mavenDeployer {
-        configuration = configurations.deployerJars
-        uniqueVersion = false
-
-        repository(url: "scpexe://${stagingURL}") {
-          authentication(userName: "${stagingUser}")
-        }
-      }
-    }
-  }
-
 }
 
 project(':sensision') {
@@ -225,7 +211,8 @@ project(':sensision') {
       attributes("Implementation-Version": version)
     }
 
-    from files(sourceSets.main.output.classesDir)
+    println sourceSets.main.output.class
+    from files(sourceSets.main.output.classesDirs.filter{})
     from {
       configurations.compile.collect {
         it.isDirectory() ? it : zipTree(it).matching {
@@ -366,6 +353,14 @@ project(':sensision-lib') {
     }
   }
 
+  task sourceJar(type: Jar) {
+    archiveClassifier = "sources"
+  }
+
+  task javadocJar(type: Jar) {
+    archiveClassifier = "javadoc"
+  }
+
   publishing {
     publications {
       sensisionlib(MavenPublication) {
@@ -373,24 +368,80 @@ project(':sensision-lib') {
         groupId 'io.warp10'
         artifactId archivesBaseName
         version version
+        pom {
+          name = 'Sensision'
+          // optionally artifactId can be defined here
+          description = 'A java library for exposing metrics'	  
+          url = 'https://github.com/senx/sensision'
+
+          scm {
+            connection = 'scm:git:git://github.com/senx/sensision.git'
+            developerConnection = 'scm:git:git://github.com/senx/sensision.git'
+            url = 'https://github.com/senx/sensision'
+          }
+
+          licenses {
+            license {
+              name = 'The Apache License, Version 2.0'
+              url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+          }
+
+          developers {
+            developer {
+              id = 'senx'
+              name = 'SenX'
+              email = 'contact@senx.io'
+            }
+          }
+        }
       }
     }
-  }
-
-  // DEPLOY ON MAVEN REPO WITH SCP
-  uploadArchives {
     repositories {
-      repositories.mavenDeployer {
-        configuration = configurations.deployerJars
-        uniqueVersion = false
+      maven {
+        def stagingRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+        def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+        url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : stagingRepoUrl
 
-        repository(url: "scpexe://${sensisionLibPublishURL}") {
-          authentication(userName: "${sensisionLibPublishUser}")
+        credentials {
+          username = ossrhUsername
+          password = ossrhPassword
         }
       }
     }
   }
 
+
+  java {
+    withJavadocJar()
+    withSourcesJar()
+  }
+
+  javadoc {
+    source = sourceSets.main.allJava
+    classpath = configurations.compileClasspath
+
+    options
+    {
+      setMemberLevel JavadocMemberLevel.PUBLIC
+      setAuthor true
+
+      links "https://docs.oracle.com/javase/8/docs/api/"
+    }
+  }
+
+  signing {
+    useGpgCmd()
+    sign publishing.publications.sensisionlib
+  }
+
+  javadoc {
+      if(JavaVersion.current().isJava9Compatible()) {
+          options.addBooleanOption('html5', true)
+      }
+  }
+
+/*
   bintray {
     user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
     key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
@@ -411,10 +462,5 @@ project(':sensision-lib') {
       }
     }
   }
-
-  //
-  // Tasks dependencies
-  //
-  uploadArchives.dependsOn sensisionLib
-  bintrayUpload.dependsOn sensisionLib
+*/
 }
