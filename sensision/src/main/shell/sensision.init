@@ -218,7 +218,7 @@ bootstrap() {
   chmod 775 ${SENSISION_HOME}/bin/sensision.init
 
   # procDump: specific acls
-  chown root:sensision ${SENSISION_HOME}/bin/procDump
+  chown root:${SENSISION_GROUP} ${SENSISION_HOME}/bin/procDump
   chmod 4750 ${SENSISION_HOME}/bin/procDump
 
   #
