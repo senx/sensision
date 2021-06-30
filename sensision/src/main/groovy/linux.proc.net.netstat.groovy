@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -104,6 +104,11 @@ try {
 
 } catch (Exception e) {
   if (SHOW_ERRORS) { e.printStackTrace(System.err); }
+
+  // Make sure the temp file is deleted if there was an error
+  if (null != tmpfile) {
+    tmpfile.delete();
+  }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try {

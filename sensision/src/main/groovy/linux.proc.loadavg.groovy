@@ -23,6 +23,7 @@ import static io.warp10.sensision.Utils.*;
 
 BufferedReader br = null;
 PrintWriter pw = null;
+File tmpfile = null;
 
 try {
 
@@ -47,7 +48,7 @@ try {
   //
 
   File outfile = OUTFILE;
-  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+  tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
 
   pw = new PrintWriter(tmpfile);
   
@@ -80,6 +81,11 @@ try {
 
 } catch (Exception e) {
   if (SHOW_ERRORS) { e.printStackTrace(System.err); }
+
+  // Make sure the temp file is deleted if there was an error
+  if (null != tmpfile) {
+    tmpfile.delete();
+  }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}

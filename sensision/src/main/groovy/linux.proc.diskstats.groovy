@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import static io.warp10.sensision.Utils.*;
 
 BufferedReader br = null;
 PrintWriter pw = null;
+File tmpfile = null;
 
 try {
 
@@ -55,7 +56,7 @@ try {
   //
 
   File outfile = OUTFILE;
-  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+  tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
 
   pw = new PrintWriter(tmpfile);
   
@@ -91,16 +92,19 @@ try {
 
     int idx;
 
+    // Check file format, see source code at https://github.com/torvalds/linux/blob/4ff2473bdb4cf2bb7d208ccf4418d3d7e6b1652c/block/genhd.c#L1161
     if (15 == tokens.length) {
       // Linux 2.4
 
       name = tokens[3];
       idx = 4;
-    } else if (14 == tokens.length) {
-      // Linux 2.6
+    } else if (14 == tokens.length || 18 == tokens.length || 20 == tokens.length) {
+      // Linux 2.6+ / 4.18+ / 5.5+
      
       name = tokens[2];
       idx = 3;
+    } else {
+      continue // Skip line, because format is unknown
     }
 
     // Is the current device name match selection (FILTER) - true by default
@@ -159,6 +163,11 @@ try {
 
 } catch (Exception e) {
   if (SHOW_ERRORS) { e.printStackTrace(System.err); }
+
+  // Make sure the temp file is deleted if there was an error
+  if (null != tmpfile) {
+    tmpfile.delete();
+  }
 } finally {
   try { if (null != br) br.close(); } catch (IOException ioe) {}
   try { if (null != pw) pw.close(); } catch (IOException ioe) {}
