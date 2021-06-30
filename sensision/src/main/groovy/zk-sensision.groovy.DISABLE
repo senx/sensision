@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 import static io.warp10.sensision.Utils.*;
 
 PrintWriter pw = null;
+File tmpfile = null;
 
 try {
 
@@ -48,7 +49,7 @@ try {
   //
 
   File outfile = OUTFILE;
-  File tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
+  tmpfile = new File("${OUTFILE.getAbsolutePath()}.pending");
 
   OutputStream out = new FileOutputStream(tmpfile);
   pw = new PrintWriter(out);
@@ -77,4 +78,9 @@ try {
 
 } catch (Exception e) {
   e.printStackTrace(System.err);
+
+  // Make sure the temp file is deleted if there was an error
+  if (null != tmpfile) {
+    tmpfile.delete();
+  }
 }
