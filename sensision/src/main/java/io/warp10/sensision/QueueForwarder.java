@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ import com.google.common.collect.MinMaxPriorityQueue;
 public class QueueForwarder extends Thread {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(QueueForwarder.class);
-  
+
   /**
    * Comma separated list of queues to forward
    */
@@ -68,70 +68,70 @@ public class QueueForwarder extends Thread {
    * Warp 10 endpoint update URL
    */
   public static final String HTTP_URL = "sensision.qf.url";
-  
+
   /**
    * Warp 10 token to use for storing data
    */
   public static final String HTTP_TOKEN = "sensision.qf.token";
-  
+
   /**
    * Name of header to use for providing the token
    */
   public static final String HTTP_TOKEN_HEADER = "sensision.qf.tokenheader";
-    
+
   /**
    * Number of files to read at each scan
    */
   public static final String HTTP_TOPN = "sensision.qf.topn";
-  
+
   /**
    * Number of milliseconds between two directory scans
    */
   public static final String HTTP_PERIOD = "sensision.qf.period";
-  
+
   /**
    * Maximum number of files to merge when sending metrics.
    */
   public static final String HTTP_BATCHSIZE = "sensision.qf.batchsize";
-  
+
   public static final String HTTP_PROXY_HOST = "sensision.qf.proxy.host";
   public static final String HTTP_PROXY_PORT = "sensision.qf.proxy.port";
-  
+
   private final File queueDir;
-  
+
   /**
    * Maximum number of files to consider at each run
    */
   private final int topn;
-  
+
   /**
    * Maximum number of files to merge when making an HTTP call
    */
   private final int batchsize;
-  
+
   /**
    * URL to connect to for sending data
    */
   private final URL url;
-  
+
   /**
    * OAuth 2.0 access token for talking to Cityzen Data
    */
   private final String token;
-  
+
   /**
    * Delay between queue dir scans
    */
   private final long period;
-  
+
   private final DeduplicationManager deduplicationManager;
 
   private final Proxy proxy;
-  
+
   private final String queue;
-  
+
   private final String tokenHeader;
-  
+
   public QueueForwarder(String queue, Properties properties) throws Exception {
     this.queue = queue;
     this.queueDir = Sensision.getQueueDir();
@@ -140,9 +140,9 @@ public class QueueForwarder extends Thread {
     this.url = new URL(properties.getProperty(HTTP_URL + "." + queue));
     this.token = properties.getProperty(HTTP_TOKEN + "." + queue);
     this.period = Long.valueOf(properties.getProperty(HTTP_PERIOD + "." + queue));
-    
+
     this.deduplicationManager = new DeduplicationManager(queue,properties);
-  
+
     if (null != properties.get(HTTP_PROXY_HOST + "." + queue) && null != properties.get(HTTP_PROXY_PORT + "." + queue)) {
       if ("noproxy".equals(properties.get(HTTP_PROXY_PORT + "." + queue))) {
         this.proxy = Proxy.NO_PROXY;
@@ -152,35 +152,35 @@ public class QueueForwarder extends Thread {
     } else {
       this.proxy = null;
     }
-    
+
     if (null != properties.getProperty(HTTP_TOKEN_HEADER + "." + queue)) {
       this.tokenHeader = properties.getProperty(HTTP_TOKEN_HEADER + "." + queue);
     } else {
       this.tokenHeader = Sensision.SENSISION_HTTP_TOKEN_HEADER_DEFAULT;
     }
-    
+
     this.setDaemon(true);
     this.setName("[Sensision QueueForwarder (" + queue + ")]");
     this.start();
   }
-  
+
   @Override
   public void run() {
-    
+
     while(true) {
 
       DirectoryStream<Path> files = null;
-      
+
       try {
         //
         // Retrieve a list of files to transmit
         //
 
         Filter<Path> filter = new Filter<Path>() {
-          
+
           @Override
           public boolean accept(Path entry) throws IOException {
-            
+
             if (!queueDir.equals(entry.getParent().toFile()) || !entry.getName(entry.getNameCount() - 1).toString().endsWith(queue + Sensision.SENSISION_QUEUED_SUFFIX)) {
               return false;
             }
@@ -191,38 +191,38 @@ public class QueueForwarder extends Thread {
         files = Files.newDirectoryStream(this.queueDir.toPath(), filter);
 
         int idx = 0;
-        
+
         Iterator<Path> iterator = files.iterator();
-        
+
         MinMaxPriorityQueue<Path> topfiles = MinMaxPriorityQueue.maximumSize(this.topn).create();
-        
+
         int queued = 0;
-        
+
         while(iterator.hasNext()) {
           topfiles.add(iterator.next());
           queued++;
         }
-                
+
         Map<String,String> labels = new HashMap<String,String>();
         labels.put(SensisionConstants.SENSISION_LABEL_QUEUE, queue);
         Sensision.set(SensisionConstants.SENSISION_CLASS_QF_QUEUED, labels, queued);
 
         iterator = topfiles.iterator();
-        
+
         int nerrors = 0;
-        
+
         while (null != files && idx < this.topn && iterator.hasNext()) {
           int batchsize = 0;
-          
+
           if (nerrors > 3) {
             LOGGER.warn("Aborting forwarding loop due to " + nerrors + " consecutive errors while connecting to " + this.url);
             break;
           }
-          
+
           HttpURLConnection conn = null;
 
           long count = 0;
-          
+
           try {
             if (null == this.proxy) {
               conn = (HttpURLConnection) this.url.openConnection();
@@ -238,31 +238,31 @@ public class QueueForwarder extends Thread {
             conn.setChunkedStreamingMode(65536);
 
             conn.connect();
-            
+
             OutputStream os = conn.getOutputStream();
             GZIPOutputStream out = new GZIPOutputStream(os);
             PrintWriter pw = new PrintWriter(out);
-            
+
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             PrintWriter spw = new PrintWriter(baos);
 
             List<File> batchfiles = new ArrayList<File>();
-            
+
             while (batchsize < this.batchsize && idx+batchsize < this.topn && iterator.hasNext()) {
               //
               // Open metrics file
               //
-              
+
               File file = iterator.next().toFile();
-              
+
               batchfiles.add(file);
-              
+
               BufferedReader br = new BufferedReader(new FileReader(file));
               batchsize++;
-              
+
               while(true) {
                 String line = br.readLine();
-                
+
                 if (null == line) {
                   break;
                 }
@@ -270,9 +270,9 @@ public class QueueForwarder extends Thread {
                 //
                 // Attempt to parse metric
                 //
-                
+
                 Value value = Sensision.parseMetric(line);
-                
+
                 // Skip invalid metrics
                 if (null == value) {
                   continue;
@@ -281,35 +281,35 @@ public class QueueForwarder extends Thread {
                 //
                 // Replace line with a sanitized version of it (with default labels/location/elevation) and
                 // labels in lexicographic order, so deduplication can work correctly
-                // 
-                
-                Sensision.dumpValue(spw, value, true, false);
+                //
+
+                Sensision.dumpValue(spw, value, true, false, false);
                 spw.flush();
                 line = baos.toString("UTF-8");
                 baos.reset();
-                
+
                 //
                 // Call dedupper with metric, if dedupper returns true, skip metric
                 //
-                
+
                 if (!this.deduplicationManager.isDuplicate(line)) {
                   pw.print(line);
                   pw.print("\r\n");
                   count++;
                 }
               }
-                          
+
               br.close();
             }
-            
+
             pw.close();
-            
+
             //InputStream is = conn.getInputStream();
-            
+
             //
             // Update was successful, delete all batchfiles
             //
-            
+
             if (HttpURLConnection.HTTP_OK == conn.getResponseCode()) {
               for (File file: batchfiles) {
                 file.delete();
@@ -333,26 +333,26 @@ public class QueueForwarder extends Thread {
             if (ioe instanceof ConnectException) {
               LOGGER.error("(ConnectException) url: " + this.url);
             }
-          } finally {            
+          } finally {
             labels = new HashMap<String,String>();
             labels.put(SensisionConstants.SENSISION_LABEL_QUEUE, this.queue);
-            
+
             Sensision.update(SensisionConstants.SENSISION_CLASS_QF_RUNS, labels, 1);
             Sensision.update(SensisionConstants.SENSISION_CLASS_QF_DATAPOINTS, labels, count);
-            
+
             idx += batchsize;
-            
+
             if (null != conn) {
               conn.disconnect();
             }
           }
-        }        
+        }
       } catch (Throwable t) {
         LOGGER.error("Caught throwable while in 'run'", t);
       } finally {
         if (null != files) {
           try { files.close(); } catch (IOException ioe) {}
-        }        
+        }
       }
 
       LockSupport.parkNanos(this.period * 1000000L);

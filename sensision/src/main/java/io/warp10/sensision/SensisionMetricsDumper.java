@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,37 +25,37 @@ import java.io.PrintWriter;
  * SENSISION_HOME
  */
 public class SensisionMetricsDumper extends Thread {
-  
+
   /**
    * Delay in ms between two dumps
    */
   private long period;
-      
+
   private boolean useValueTS;
-  
+
   public SensisionMetricsDumper() {
-    
+
     if (Sensision.disable) {
       return;
     }
-    
+
     try {
       this.period = Long.valueOf(System.getProperty(Sensision.SENSISION_DUMP_PERIOD));
     } catch (NumberFormatException nfe) {
-      this.period = Sensision.DEFAULT_DUMP_PERIOD;        
+      this.period = Sensision.DEFAULT_DUMP_PERIOD;
     }
-  
+
     if ("true".equals(System.getProperty(Sensision.SENSISION_DUMP_CURRENTTS))) {
       this.useValueTS = false;
     } else {
       this.useValueTS = true;
     }
-    
+
     this.setDaemon(true);
     this.setName("Sensision MetricsDumper");
     this.start();
   }
-  
+
   @Override
   public void run() {
     while(true) {
@@ -69,30 +69,30 @@ public class SensisionMetricsDumper extends Thread {
       Sensision.flushEvents();
     }
   }
-  
+
   public static void flushMetrics(SensisionMetricsDumper dumper) {
     String home = System.getProperty(Sensision.SENSISION_HOME, Sensision.DEFAULT_SENSISION_HOME);
-    
+
     // Build the filename for the registration as a list of dot separated tokens
-    
+
     // First token is the current time reversed.
     String filename = Long.toHexString(Long.MAX_VALUE - System.currentTimeMillis());
-    
+
     // next token is the reversed timestamp of start time
     filename = filename + ".";
     filename = filename + Long.toHexString(Long.MAX_VALUE - Sensision.getStartTime());
-    
+
     // Next token is the Sensision uuid
     filename = filename + ".";
     filename = filename + Sensision.getUUID();
-    
+
     filename = filename + Sensision.SENSISION_METRICS_SUFFIX;
-    
+
     File metricsDir = new File(home, Sensision.SENSISION_METRICS_SUBDIR);
     File reg = new File(metricsDir, filename + ".tmp");
 
     PrintWriter out = null;
-    
+
     try {
       out = new PrintWriter(reg);
       if (null == dumper) {
@@ -106,7 +106,7 @@ public class SensisionMetricsDumper extends Thread {
         out.close();
       }
     }
-    
+
     if (0 == reg.length()) {
       // Delete if no metrics were written
       reg.delete();
@@ -114,10 +114,10 @@ public class SensisionMetricsDumper extends Thread {
       // Rename file atomically
 
       reg.renameTo(new File(metricsDir, filename));
-    }    
+    }
   }
-  
+
   public void dump(PrintWriter out) throws IOException {
-    Sensision.dump(out, this.useValueTS);
+    Sensision.dump(out, this.useValueTS, false);
   }
 }
