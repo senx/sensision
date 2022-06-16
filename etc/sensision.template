@@ -8,7 +8,6 @@
 ##   proxy: pseudo poller, will act as a target of the 'http' queue manager and treat
 ##          received metrics as if it had polled them itself
 ##
-## REVISION_TAG=1.0
 
 sensision.home=/opt/sensision-@VERSION@
 
@@ -109,7 +108,7 @@ sensision.qf.batchsize.default=100000
 ## A script runner periodically executes Groovy scripts located
 ## in subdirectory of a configured 'root' directory
 ##
-  
+
 # Set to 'true' to enable script runner
 sensision.scriptrunner=true
 # Directory under which scripts reside (in subdirectories named after their periodicity)
@@ -118,7 +117,7 @@ sensision.scriptrunner.root=/opt/sensision-@VERSION@/scripts
 sensision.scriptrunner.nthreads=10
 # How often (in ms) to scan for new scripts
 sensision.scriptrunner.scanperiod=60000
-  
+
 #sensision.jmx.poller=http
 
 #sensision.polling.hint
@@ -132,4 +131,3 @@ sensision.scriptrunner.scanperiod=60000
 #sensision.default.elevation
 
 #sensision.http.nokeepalive=true
-

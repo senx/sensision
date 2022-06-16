@@ -583,6 +583,8 @@ public class Sensision {
     
     if (null != ttl) {
       container.expire = System.currentTimeMillis() + ttl;
+    } else {
+      container.expire = null;
     }
   }
 
@@ -1257,8 +1259,17 @@ public class Sensision {
    * @throws IOException
    */
   public static final void dump(PrintWriter out, boolean useValueTimestamp) throws IOException {
-    for (Map<Map<String,String>, Value> byClass: values.values()) {
-      for (Value value: byClass.values()) {
+    List<String> classes = new ArrayList<String>(values.keySet());
+    
+    for (String clazz: classes) {
+      Map<Map<String,String>,Value> byClass = values.get(clazz);
+      
+      if (null == byClass) {
+        continue;
+      }
+      
+      List<Value> vals = new ArrayList<Value>(byClass.values()); 
+      for (Value value: vals) {
         dumpValue(out, value, useValueTimestamp, true);
       }
     }

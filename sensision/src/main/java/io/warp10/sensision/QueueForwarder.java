@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
 
 import org.slf4j.Logger;
@@ -208,22 +209,15 @@ public class QueueForwarder extends Thread {
 
         iterator = topfiles.iterator();
         
-        //
-        // We should populate a list of the top N files, using a priority queue/sorted list and then process those files
-        //
+        int nerrors = 0;
         
         while (null != files && idx < this.topn && iterator.hasNext()) {
           int batchsize = 0;
           
-          //
-          // FIXME(hbs): we should switch to Apache HttpClient which would allow us to
-          // stream the metrics. Using HttpURLConnection, metrics are first buffered in memory
-          // prior to being sent, thus consuming more memory, even though we compress them on
-          // the fly. If we ever hit a problem this way, read this FIXME over...
-          //
-          // FIXED(hbs): using setChunkedStreamingMode fixes the problem
-          //
-          
+          if (nerrors > 3) {
+            LOGGER.warn("Aborting forwarding loop due to " + nerrors + " consecutive errors while connecting to " + this.url);
+            break;
+          }
           
           HttpURLConnection conn = null;
 
@@ -323,21 +317,23 @@ public class QueueForwarder extends Thread {
             } else {
               LOGGER.error(url + " failed - error code: " + conn.getResponseCode());
               InputStream is = conn.getErrorStream();
-              BufferedReader errorReader = new BufferedReader(new InputStreamReader(is));
-              String line = errorReader.readLine();
-              while (null != line) {
-                LOGGER.error(line);
-                line = errorReader.readLine();
+              if (null != is) {
+                BufferedReader errorReader = new BufferedReader(new InputStreamReader(is));
+                String line = errorReader.readLine();
+                while (null != line) {
+                  LOGGER.error(line);
+                  line = errorReader.readLine();
+                }
+                is.close();
               }
-              is.close();
             }
           } catch (IOException ioe) {
+            nerrors++;
             LOGGER.error("Caught IO exception while in 'run'", ioe);
             if (ioe instanceof ConnectException) {
               LOGGER.error("(ConnectException) url: " + this.url);
             }
-          } finally {
-            
+          } finally {            
             labels = new HashMap<String,String>();
             labels.put(SensisionConstants.SENSISION_LABEL_QUEUE, this.queue);
             
@@ -358,11 +354,8 @@ public class QueueForwarder extends Thread {
           try { files.close(); } catch (IOException ioe) {}
         }        
       }
-                  
-      try {
-        Thread.sleep(this.period);
-      } catch(InterruptedException ie) {        
-      }
+
+      LockSupport.parkNanos(this.period * 1000000L);
     }
   }
 }
