@@ -54,7 +54,7 @@ def updateRevision(String revision) {
   //
   File versionFile = new File(rootProject.projectDir, "sensision/src/main/java/io/warp10/Revision.java")
   String fileContent = versionFile.text
-  String newContent = fileContent.replaceAll(/(REVISION = ")(.*)(";)/){
+  String newContent = fileContent.replaceAll(/(REVISION = ")(.*)(";)/) {
     fullMatch, varName, oldVersion, endLine -> return "$varName$revision$endLine"
   }
   versionFile.write(newContent)
@@ -101,7 +101,7 @@ subprojects {
     options.compilerArgs << '1.5'
   }
 
-  ext{
+  ext {
     stagingUser = project.hasProperty('stagingUser') ? project.property('stagingUser') : System.getenv('STAGEING_USER')
     stagingURL = project.hasProperty('stagingURL') ? project.property('stagingURL') : System.getenv('STAGEING_URL')
 
@@ -123,10 +123,10 @@ subprojects {
       if (graph.hasTask(uploadArchives) || graph.hasTask(bintrayUpload)) {
         if (!isGitRepoSynced()) {
           throw new GradleException("Cannot upload archive: local repo contains uncommited files (git status -u no --porcelain)")
-       }
+        }
       }
 
-     }
+    }
   }
 
   configurations {
@@ -169,7 +169,7 @@ subprojects {
       exclude module: 'jmxri'
     }
 
-    compile group:'com.google.guava', name:'guava', version: '19.0'
+    compile group: 'com.google.guava', name: 'guava', version: '19.0'
 
     tools files('tools/jarjar-1.4.jar')
 
@@ -212,7 +212,7 @@ project(':sensision') {
     }
 
     println sourceSets.main.output.class
-    from files(sourceSets.main.output.classesDirs.filter{})
+    from files(sourceSets.main.output.classesDirs.filter {})
     from {
       configurations.compile.collect {
         it.isDirectory() ? it : zipTree(it).matching {
@@ -239,7 +239,7 @@ project(':sensision') {
 
   task createTarArchive(type: Exec, dependsOn: sensisionService) {
     workingDir = '.'
-    commandLine = [ 'src/main/shell/package.sh', getVersionName('') ]
+    commandLine = ['src/main/shell/package.sh', getVersionName('')]
   }
 
   publishing {
@@ -259,7 +259,7 @@ project(':sensision') {
     user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
     key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
-    publications = [ 'sensisionService' ]
+    publications = ['sensisionService']
     publish = true
 
     pkg {
@@ -293,10 +293,10 @@ project(':sensision-lib') {
     }
 
     from project(":sensision").sourceSets.main.output
-      include 'io/warp10/sensision/Sensision**'
-      include 'io/warp10/sensision/hadoop/**'
-      include 'io/warp10/sensision/kafka/**'
-      include 'io/warp10/sensision/yammermetrics/**'
+    include 'io/warp10/sensision/Sensision**'
+    include 'io/warp10/sensision/hadoop/**'
+    include 'io/warp10/sensision/kafka/**'
+    include 'io/warp10/sensision/yammermetrics/**'
 
   }
 
@@ -326,12 +326,14 @@ project(':sensision-lib') {
           //
           // Iterate over .jar files
           //
-          configurations.runtime.files.findAll {file ->
+          configurations.runtime.files.findAll { file ->
             for (name in ['jetty-', 'javax.servlet-']) {
-              if (file.name.startsWith(name)) { return true; }
+              if (file.name.startsWith(name)) {
+                return true;
+              }
             }
             return false;
-          }.each {jarjarFile ->
+          }.each { jarjarFile ->
             zipfileset(src: jarjarFile) {
               exclude(name: 'META-INF/**')
               exclude(name: 'about.html')
@@ -361,58 +363,59 @@ project(':sensision-lib') {
     archiveClassifier = "javadoc"
   }
 
-  publishing {
-    publications {
-      sensisionlib(MavenPublication) {
-        artifact sensisionLib
-        artifact sourceJar
-        artifact javadocJar
-        groupId 'io.warp10'
-        artifactId archivesBaseName
-        version version
-        pom {
-          name = 'Sensision'
-          // optionally artifactId can be defined here
-          description = 'A java library for exposing metrics'	  
-          url = 'https://github.com/senx/sensision'
-
-          scm {
-            connection = 'scm:git:git://github.com/senx/sensision.git'
-            developerConnection = 'scm:git:git://github.com/senx/sensision.git'
+  if (project.hasProperty("ossrhUsername")) {
+    publishing {
+      publications {
+        sensisionlib(MavenPublication) {
+          artifact sensisionLib
+          artifact sourceJar
+          artifact javadocJar
+          groupId 'io.warp10'
+          artifactId archivesBaseName
+          version version
+          pom {
+            name = 'Sensision'
+            // optionally artifactId can be defined here
+            description = 'A java library for exposing metrics'
             url = 'https://github.com/senx/sensision'
-          }
 
-          licenses {
-            license {
-              name = 'The Apache License, Version 2.0'
-              url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            scm {
+              connection = 'scm:git:git://github.com/senx/sensision.git'
+              developerConnection = 'scm:git:git://github.com/senx/sensision.git'
+              url = 'https://github.com/senx/sensision'
             }
-          }
 
-          developers {
-            developer {
-              id = 'senx'
-              name = 'SenX'
-              email = 'contact@senx.io'
+            licenses {
+              license {
+                name = 'The Apache License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+              }
+            }
+
+            developers {
+              developer {
+                id = 'senx'
+                name = 'SenX'
+                email = 'contact@senx.io'
+              }
             }
           }
         }
       }
-    }
-    repositories {
-      maven {
-        def stagingRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-        def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
-        url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : stagingRepoUrl
+      repositories {
+        maven {
+          def stagingRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+          def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+          url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : stagingRepoUrl
 
-        credentials {
-          username = ossrhUsername
-          password = ossrhPassword
+          credentials {
+            username = ossrhUsername
+            password = ossrhPassword
+          }
         }
       }
     }
   }
-
 
   java {
     withJavadocJar()
@@ -424,22 +427,24 @@ project(':sensision-lib') {
     classpath = configurations.compileClasspath
 
     options
-    {
-      setMemberLevel JavadocMemberLevel.PUBLIC
-      setAuthor true
+        {
+          setMemberLevel JavadocMemberLevel.PUBLIC
+          setAuthor true
 
-      links "https://docs.oracle.com/javase/8/docs/api/"
+          links "https://docs.oracle.com/javase/8/docs/api/"
+        }
+  }
+
+  if (project.hasProperty("ossrhUsername")) {
+    signing {
+      useGpgCmd()
+      sign publishing.publications.sensisionlib
     }
   }
 
-  signing {
-    useGpgCmd()
-    sign publishing.publications.sensisionlib
-  }
-
   javadoc {
-      if(JavaVersion.current().isJava9Compatible()) {
-          options.addBooleanOption('html5', true)
-      }
+    if (JavaVersion.current().isJava9Compatible()) {
+      options.addBooleanOption('html5', true)
+    }
   }
 }
