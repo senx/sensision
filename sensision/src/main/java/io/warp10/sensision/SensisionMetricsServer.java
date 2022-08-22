@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -259,6 +259,10 @@ public class SensisionMetricsServer extends Thread {
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
+  }
+
+  public void dumpMetrics(PrintWriter out, boolean useValueTimestamp) throws IOException {
+    Sensision.dump(out, useValueTimestamp, false);
   }
 
   public void dumpMetrics(PrintWriter out, boolean useValueTimestamp, boolean openmetrics) throws IOException {

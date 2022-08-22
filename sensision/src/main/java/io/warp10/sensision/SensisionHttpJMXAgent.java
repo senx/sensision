@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ public class SensisionHttpJMXAgent extends SensisionJMXPoller {
     dumper = new SensisionMetricsServer() {
       @Override
       public void dumpMetrics(PrintWriter out, boolean useValueTimestamp, boolean openmetrics) throws IOException {
-        self.dump(out);
+        self.dump(out, OpenMetrics.useOpenMetrics());
       }
     };
   }

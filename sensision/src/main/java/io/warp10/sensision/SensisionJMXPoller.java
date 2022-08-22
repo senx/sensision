@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -196,7 +196,7 @@ public class SensisionJMXPoller {
   /**
    * Dump metrics to a PrintWriter
    */
-  void dump(PrintWriter pw) {
+  void dump(PrintWriter pw, boolean openmetrics) {
 
     Set<MBeanServer> servers = new HashSet<MBeanServer>();
 
@@ -293,13 +293,13 @@ public class SensisionJMXPoller {
             String metricName = sb.toString();
 
             if ("long".equals(attr.getType()) || "int".equals(attr.getType())) {
-              dumpMetric(pw, metricName, labels, ((Number) value).longValue());
+              dumpMetric(pw, metricName, labels, ((Number) value).longValue(), openmetrics);
             } else if ("double".equals(attr.getType()) || "float".equals(attr.getType())) {
-              dumpMetric(pw, metricName, labels, ((Number) value).doubleValue());
+              dumpMetric(pw, metricName, labels, ((Number) value).doubleValue(), openmetrics);
             } else if ("java.lang.String".equals(attr.getType())) {
-              dumpMetric(pw, metricName, labels, value.toString());
+              dumpMetric(pw, metricName, labels, value.toString(), openmetrics);
             } else if ("boolean".equals(attr.getType())) {
-              dumpMetric(pw, metricName, labels, ((Boolean) value).booleanValue());
+              dumpMetric(pw, metricName, labels, ((Boolean) value).booleanValue(), openmetrics);
             } else if ("[Ljava.lang.String;".equals(attr.getType())) {
               sb.append(":stringlist");
 
@@ -310,13 +310,13 @@ public class SensisionJMXPoller {
                 }
                 sb.append(s);
               }
-              dumpMetric(pw, metricName, labels, sb.toString());
+              dumpMetric(pw, metricName, labels, sb.toString(), openmetrics);
             } else if (value instanceof TabularData) {
               TabularData td = (TabularData) value;
-              dumpTabularData(pw, metricName, labels, td);
+              dumpTabularData(pw, metricName, labels, td, openmetrics);
             } else if (value instanceof javax.management.openmbean.CompositeData || "javax.management.openmbean.CompositeData".equals(attr.getType())) {
               CompositeData cd = (CompositeData) value;
-              dumpCompositeData(pw, metricName, labels, cd);
+              dumpCompositeData(pw, metricName, labels, cd, openmetrics);
             } else {
             }
           } catch (Exception e) {}
@@ -333,13 +333,13 @@ public class SensisionJMXPoller {
    * @param labels
    * @param value
    */
-  private final void dumpMetric(PrintWriter pw, String name, Map<String,String> labels, Object value) {
+  private final void dumpMetric(PrintWriter pw, String name, Map<String,String> labels, Object value, boolean openmetrics) {
 
     if (!checkPatterns(name, includedMetrics, excludedMetrics)) {
       return;
     }
 
-    if (OpenMetrics.useOpenMetrics()) {
+    if (openmetrics) {
       OpenMetrics.dump(pw, name, labels, null, value);
       return;
     }
@@ -385,7 +385,11 @@ public class SensisionJMXPoller {
     }
   }
 
-  private final void dumpTabularData(PrintWriter pw, String name, Map<String,String> labels, TabularData td) {
+  private final void dumpMetric(PrintWriter pw, String name, Map<String,String> labels, Object value) {
+    dumpMetric(pw, name, labels, value, false);
+  }
+
+  private final void dumpTabularData(PrintWriter pw, String name, Map<String,String> labels, TabularData td, boolean openmetrics) {
     for (Object rowkey: td.keySet()) {
 
       if (rowkey instanceof List) {
@@ -416,11 +420,11 @@ public class SensisionJMXPoller {
                 new String[] { cd.getCompositeType().getDescription("value") },
                 new OpenType[] { cd.getCompositeType().getType("value")});
             CompositeDataSupport cds = new CompositeDataSupport(ct, values);
-            dumpCompositeData(pw, name, rowlabels, cds);
+            dumpCompositeData(pw, name, rowlabels, cds, openmetrics);
           } catch (OpenDataException ode) {
           }
         } else {
-          dumpCompositeData(pw, name, rowlabels, cd);
+          dumpCompositeData(pw, name, rowlabels, cd, openmetrics);
         }
       } else {
         // Weird, this should be impossible!
@@ -428,7 +432,7 @@ public class SensisionJMXPoller {
     }
   }
 
-  private final void dumpCompositeData(PrintWriter pw, String name, Map<String,String> labels, CompositeData cd) {
+  private final void dumpCompositeData(PrintWriter pw, String name, Map<String,String> labels, CompositeData cd, boolean openmetrics) {
 
     StringBuilder sb = new StringBuilder(name);
 
@@ -443,19 +447,19 @@ public class SensisionJMXPoller {
       Object val = cd.get(key);
 
       if (val instanceof Long || val instanceof Integer || val instanceof Short || val instanceof Byte) {
-        dumpMetric(pw, sb.toString(), labels, ((Number) val).longValue());
+        dumpMetric(pw, sb.toString(), labels, ((Number) val).longValue(), openmetrics);
       } else if (val instanceof Double || val instanceof Float) {
-        dumpMetric(pw, sb.toString(), labels, ((Number) val).doubleValue());
+        dumpMetric(pw, sb.toString(), labels, ((Number) val).doubleValue(), openmetrics);
       } else if (val instanceof Boolean) {
-        dumpMetric(pw, sb.toString(), labels, ((Boolean) val).booleanValue());
+        dumpMetric(pw, sb.toString(), labels, ((Boolean) val).booleanValue(), openmetrics);
       } else if (val instanceof String) {
-        dumpMetric(pw, sb.toString(), labels, val.toString());
+        dumpMetric(pw, sb.toString(), labels, val.toString(), openmetrics);
       } else if (val instanceof TabularData) {
-        dumpTabularData(pw, sb.toString(), labels, (TabularData) val);
+        dumpTabularData(pw, sb.toString(), labels, (TabularData) val, openmetrics);
       } else if (val instanceof CompositeData) {
-        dumpCompositeData(pw, sb.toString(), labels, (CompositeData) val);
+        dumpCompositeData(pw, sb.toString(), labels, (CompositeData) val, openmetrics);
       } else {
-        dumpMetric(pw, sb.toString(), labels, val.toString());
+        dumpMetric(pw, sb.toString(), labels, val.toString(), openmetrics);
       }
     }
   }
