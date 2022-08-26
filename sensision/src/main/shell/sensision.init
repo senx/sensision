@@ -15,32 +15,31 @@
 #   limitations under the License.
 #
 
-
 # Source function library.
 if [ -e /etc/rc.d/init.d/functions ]; then
 
-#
-# sensision  Sensision metric collection service
-#
-# chkconfig: 2345 80 30
-# description: Sensision collects various metrics and moves them to Cityzen Data
+  #
+  # sensision  Sensision metric collection service
+  #
+  # chkconfig: 2345 80 30
+  # description: Sensision collects various metrics and moves them to Cityzen Data
 
-# Source function library.
-. /etc/rc.d/init.d/functions
+  # Source function library.
+  . /etc/rc.d/init.d/functions
 elif [ -e /lib/lsb/init-functions ]; then
 
-### BEGIN INIT INFO
-# Provides:          sensision
-# Required-Start:
-# Required-Stop:
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Short-Description: Sensision metric collection service
-# Description:       Sensision metric collection service
-### END INIT INFO
+  ### BEGIN INIT INFO
+  # Provides:          sensision
+  # Required-Start:
+  # Required-Stop:
+  # Default-Start:     2 3 4 5
+  # Default-Stop:      0 1 6
+  # Short-Description: Sensision metric collection service
+  # Description:       Sensision metric collection service
+  ### END INIT INFO
 
-# Source function library.
-. /lib/lsb/init-functions
+  # Source function library.
+  . /lib/lsb/init-functions
 fi
 
 VERSION=@VERSION@
@@ -49,24 +48,27 @@ VERSION=@VERSION@
 
 # Strongly inspired by gradlew
 # Determine the Java command to use to start the JVM.
-if [ -n "$JAVA_HOME" ] ; then
-    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
-        # IBM's JDK on AIX uses strange locations for the executables
-        JAVACMD="$JAVA_HOME/jre/sh/java"
-    elif [ -x "$JAVA_HOME/bin/java" ] ; then
-        JAVACMD="$JAVA_HOME/bin/java"
-    else
-        JAVACMD="$JAVA_HOME/jre/bin/java"
-    fi
-    if [ ! -x "$JAVACMD" ] ; then
-        echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+if [ -n "$JAVA_HOME" ]; then
+  if [ -x "$JAVA_HOME/jre/sh/java" ]; then
+    # IBM's JDK on AIX uses strange locations for the executables
+    JAVACMD="$JAVA_HOME/jre/sh/java"
+  elif [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVACMD="$JAVA_HOME/bin/java"
+  else
+    JAVACMD="$JAVA_HOME/jre/bin/java"
+  fi
+  if [ ! -x "$JAVACMD" ]; then
+    echo "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
 Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
-        exit 1
-    fi
+    exit 1
+  fi
 else
-    JAVACMD="java"
-    which java >/dev/null 2>&1 || (echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
-Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."; exit 1)
+  JAVACMD="java"
+  which java >/dev/null 2>&1 || (
+    echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+Please set the JAVA_HOME variable in your environment or in $0 to match the location of your Java installation."
+    exit 1
+  )
 fi
 
 #
@@ -79,11 +81,10 @@ fi
 
 # If SENSISION_HOME is not defined, set it to the parent directory
 if [ -z "${SENSISION_HOME}" ]; then
-  SENSISION_HOME=`cd $(dirname $0); cd $(pwd -P)/..; pwd -P`
+  SENSISION_HOME=$(cd $(dirname $0); cd $(pwd -P)/..; pwd -P)
 fi
 
 export SENSISION_HOME
-
 
 SENSISION_USER=sensision
 SENSISION_GROUP=sensision
@@ -133,7 +134,7 @@ moveDir() {
 # Exit this script if user doesn't match
 #
 isUser() {
-  if [ "`whoami`" != "${1}" ]; then
+  if [ "$(whoami)" != "${1}" ]; then
     echo "You must be '${1}' to run this script."
     exit 1
   fi
@@ -144,7 +145,7 @@ isUser() {
 #
 isStarted() {
   # Don't use 'ps -p' for docker compatibility
-  if [ -e ${PID_FILE} ] && ps -Ao pid |  grep "^\s*$(cat ${PID_FILE})$" > /dev/null; then
+  if [ -e ${PID_FILE} ] && ps -Ao pid | grep "^\s*$(cat ${PID_FILE})$" >/dev/null; then
     return 0
   fi
   return 1
@@ -154,12 +155,12 @@ CONFIG_FILES=
 getConfigFiles() {
   # Get standard configuration directory
   if [[ -d "${WARP10_CONFIG_DIR}" ]]; then
-    CONFIG_FILES=`find ${WARP10_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2> /dev/null`
+    CONFIG_FILES=$(find ${WARP10_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2>/dev/null)
   fi
 
   # Get additional configuration directory
   if [[ -n "${WARP10_EXT_CONFIG_DIR}" && -d "${WARP10_EXT_CONFIG_DIR}" ]]; then
-    CONFIG_FILES="${CONFIG_FILES} `find ${WARP10_EXT_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2> /dev/null`"
+    CONFIG_FILES="${CONFIG_FILES} $(find ${WARP10_EXT_CONFIG_DIR} -not -path "*/\.*" -name "*.conf" | sort | tr '\n' ' ' 2>/dev/null)"
   fi
 }
 
@@ -175,11 +176,25 @@ bootstrap() {
   # Check if sensision user exists
   # Create it if not
   #
+  if ! getent group "${WARP10_GROUP}" >/dev/null 2>&1; then
+    echo "Group $WARP10_GROUP does not exist - Creating it.."
+    # Create warp10 group
+    if [ "$(which groupadd)" = "" ]; then
+      if [ "$(which addgroup)" != "" ]; then
+        addgroup ${WARP10_GROUP}
+      else
+        echo "Cannot create the ${WARP10_GROUP} group. Create it manually then run the script again."
+        exit 1
+      fi
+    else
+      groupadd ${WARP10_GROUP}
+    fi
+  fi
   if ! id -u "${SENSISION_USER}" >/dev/null 2>&1; then
     echo "User '${SENSISION_USER}'' does not exist - Creating it.."
     # Create user sensision and add it to warp10 group
-    if [ "`which useradd`" = "" ]; then
-      if [ "`which adduser`" != "" ]; then
+    if [ "$(which useradd)" = "" ]; then
+      if [ "$(which adduser)" != "" ]; then
         adduser -D -s -H -h ${SENSISION_HOME} -s /bin/bash ${SENSISION_USER}
         addgroup ${SENSISION_USER} ${WARP10_GROUP}
       else
@@ -190,7 +205,6 @@ bootstrap() {
       useradd -d ${SENSISION_HOME} -M -r ${SENSISION_USER} -G ${WARP10_GROUP} -s /bin/bash
     fi
   fi
-
 
   #
   # Fix ownership
@@ -206,8 +220,8 @@ bootstrap() {
   echo "Fix permissions.."
   # Everyone should have r+x permissions to SENSISION_HOME (targets, metrics)
   chmod 775 ${SENSISION_HOME}
-  chmod 775 ${SENSISION_HOME}/bin
-  chmod 775 ${SENSISION_HOME}/etc
+ # chmod 775 ${SENSISION_HOME}/bin
+ # chmod 775 ${SENSISION_HOME}/etc
   chmod 775 ${SENSISION_HOME}/templates
   chmod 775 ${SENSISION_HOME}/logs
   chmod 1733 ${SENSISION_HOME}/targets
@@ -282,6 +296,7 @@ bootstrap() {
   sed -i -e "s_^sensision\.home.*_sensision\.home = ${SENSISION_HOME}_" ${SENSISION_HOME}/templates/sensision.template
   sed -i -e "s_^sensision\.scriptrunner\.root.*_sensision\.scriptrunner\.root = ${SENSISION_HOME}/scripts_" ${SENSISION_HOME}/templates/sensision.template
   sed -i -e "s_sensisionLog\.File=.*_sensisionLog\.File=${SENSISION_HOME}/logs/nohup.out_" ${SENSISION_HOME}/etc/log4j.properties
+  chmod 775 ${SENSISION_HOME}/etc/log4j.properties
 
   getConfigFiles
   if [ "${CONFIG_FILES}" != "" ]; then
@@ -291,8 +306,8 @@ bootstrap() {
     echo "WARP10_JAR: ${WARP10_JAR}"
 
     # Edit the sensision-tokengen.mc2 to use or not the secret
-    secret=`su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
-    if [[ "${secret}"  != "null" ]]; then
+    secret=$(su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'")
+    if [[ "${secret}" != "null" ]]; then
       sed -i -e "s|^{{secret}}|'"${secret}"'|" ${SENSISION_HOME}/templates/sensision-tokengen.mc2
     else
       sed -i -e "s|^{{secret}}||" ${SENSISION_HOME}/templates/sensision-tokengen.mc2
@@ -300,7 +315,7 @@ bootstrap() {
 
     # Generate initial tokens
     su ${SENSISION_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.TokenGen ${CONFIG_FILES} ${SENSISION_HOME}/templates/sensision-tokengen.mc2 ${SENSISION_TOKENS}"
-    sed  -i 's/^.\{1\}//;$ s/.$//' ${SENSISION_TOKENS} # Remove first and last character
+    sed -i 's/^.\{1\}//;$ s/.$//' ${SENSISION_TOKENS} # Remove first and last character
 
     TOKEN_TYPE="write"
     WRITE_TOKEN="$(cat ${SENSISION_TOKENS} | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w "${TOKEN_TYPE}" | cut -d'|' -f 3 | tr -d '\n\r')"
@@ -365,7 +380,7 @@ stop() {
   #
   # Make sure the caller is SENSISION_USER
   #
-#  isUser ${SENSISION_USER}
+  #  isUser ${SENSISION_USER}
 
   if isStarted; then
     kill $(cat ${PID_FILE})
@@ -380,7 +395,7 @@ status() {
   #
   # Make sure the caller is SENSISION_USER
   #
-#  isUser ${SENSISION_USER}
+  #  isUser ${SENSISION_USER}
 
   if isStarted; then
     ps -Ao pid,etime,args | grep "^\s*$(cat ${PID_FILE})\s"
@@ -389,24 +404,24 @@ status() {
   fi
 }
 
-
 # See how we were called.
 case "$1" in
-  bootstrap)
-    bootstrap
-    ;;
-  start)
-    start
-    ;;
-  stop)
-    stop
-    ;;
-  status)
-    status
-    ;;
-  *)
-    echo $"Usage: $0 {bootstrap|start|stop|status}"
+bootstrap)
+  bootstrap
+  ;;
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+status)
+  status
+  ;;
+*)
+  echo $"Usage: $0 {bootstrap|start|stop|status}"
   exit 2
+  ;;
 esac
 
 exit $?
