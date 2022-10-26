@@ -16,5 +16,5 @@
 package io.warp10;
 
 public class Revision {
-  public static final String REVISION = "";
+  public static final String REVISION = "1.0.24-7-g680bd5c";
 }
