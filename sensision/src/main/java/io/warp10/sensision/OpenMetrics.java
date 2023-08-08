@@ -22,8 +22,6 @@ import java.util.Map.Entry;
 
 public class OpenMetrics {
 
-  private static final boolean useOpenMetrics = null != System.getProperty(Sensision.SENSISION_OPENMETRICS);
-
   public static void dump(PrintWriter out, String name, Map<String,String> labels, Long timestamp, Object value) {
 
     //
@@ -197,9 +195,5 @@ public class OpenMetrics {
     value = value.replaceAll("\"", "\\\"");
 
     return value;
-  }
-
-  public static boolean useOpenMetrics() {
-    return useOpenMetrics;
   }
 }

@@ -74,8 +74,6 @@ public class Sensision {
   public static final String SENSISION_POLLERS = "sensision.pollers";
   public static final String SENSISION_HTTP_TOKEN_HEADER_DEFAULT = "X-Warp10-Token";
 
-  public static final String SENSISION_OPENMETRICS = "sensision.openmetrics";
-
   public static final String HTTP_HEADER_UUID = "X-UUID";
   public static final String HTTP_HEADER_TIMESTAMP = "X-Timestamp";
   public static final String HTTP_HEADER_LASTEVENT = "X-Sensision-LastEvent";
