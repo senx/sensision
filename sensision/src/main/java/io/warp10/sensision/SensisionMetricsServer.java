@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -61,7 +61,6 @@ public class SensisionMetricsServer extends Thread {
     @Override
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
       if ("/metrics".equals(target)) {
-
         String valuets = request.getParameter("valuets");
 
         response.setContentType("text/plain;charset=utf-8");
@@ -75,7 +74,22 @@ public class SensisionMetricsServer extends Thread {
 
         PrintWriter out = response.getWriter();
 
-        server.dumpMetrics(out, null != valuets, OpenMetrics.useOpenMetrics());
+        server.dumpMetrics(out, null != valuets, false);
+      } else if ("/openmetrics".equals(target)) {
+        String valuets = request.getParameter("valuets");
+
+        response.setContentType("text/plain;charset=utf-8");
+        if (null != System.getProperty(Sensision.SENSISION_HTTP_NOKEEPALIVE)) {
+          response.setHeader("Connection", "close");
+        }
+        response.setHeader(Sensision.HTTP_HEADER_UUID, Sensision.getUUID());
+        response.setHeader(Sensision.HTTP_HEADER_TIMESTAMP, Long.toHexString(Long.MAX_VALUE - Sensision.getStartTime()));
+        response.setStatus(HttpServletResponse.SC_OK);
+        baseRequest.setHandled(true);
+
+        PrintWriter out = response.getWriter();
+
+        server.dumpMetrics(out, null != valuets, true);
       } else if ("/events".equals(target)) {
 
         boolean onDisk = Sensision.onDisk();
