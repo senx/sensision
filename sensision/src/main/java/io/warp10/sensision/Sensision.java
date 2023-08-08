@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -132,6 +132,7 @@ public class Sensision {
   public static final String SENSISION_HTTPPOLLER_SLEEP = "sensision.poller.http.sleep";
   public static final String SENSISION_HTTPPOLLER_SCANPERIOD = "sensision.poller.http.scanperiod";
   public static final String SENSISION_HTTPPOLLER_FORCEDHINT = "sensision.poller.http.forcedhint";
+  public static final String SENSISION_HTTPPOLLER_TIMEOUT = "sensision.poller.http.timeout";
   
   public static final String SENSISION_SCRIPTRUNNER = "sensision.scriptrunner";
   public static final String SENSISION_SCRIPTRUNNER_ROOT = "sensision.scriptrunner.root";
