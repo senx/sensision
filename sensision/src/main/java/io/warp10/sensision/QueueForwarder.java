@@ -246,6 +246,7 @@ public class QueueForwarder extends Thread {
             conn.setRequestProperty("Content-Type", "application/gzip");
             conn.setChunkedStreamingMode(65536);
             conn.setConnectTimeout(timeout);
+            conn.setReadTimeout(2 * timeout);
 
             conn.connect();
 

@@ -208,6 +208,7 @@ public class HttpPoller extends Thread {
             try {
               conn = (HttpURLConnection) url.openConnection();
               conn.setConnectTimeout(connectTimeout);
+              conn.setReadTimeout(2 * connectTimeout);
             } catch (IOException ioe) {
               return false;
             }
@@ -276,6 +277,8 @@ public class HttpPoller extends Thread {
 
               try {
                 conn = (HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(connectTimeout);
+                conn.setReadTimeout(2 * connectTimeout);
               } catch (IOException ioe) {
                 return false;
               }
