@@ -16,8 +16,6 @@
 
 package io.warp10.sensision;
 
-import io.warp10.sensision.Sensision;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,33 +27,38 @@ public class SensisionTest {
   public void testGetValue() {
     String cls = "class";
     Map<String,String> labels = new HashMap<String,String>();
-    
+
     Assert.assertNull(Sensision.getValue(cls, labels));
-    
+
     Sensision.set(cls + ".boolean", labels, true);
     Assert.assertEquals(true, Sensision.getValue(cls + ".boolean", labels));
-    
+
     long nano = System.nanoTime();
     Sensision.set(cls + ".long", labels, nano);
     Assert.assertEquals(nano, Sensision.getValue(cls + ".long", labels));
     Sensision.update(cls + ".long", labels, 42);
     Assert.assertEquals(42 + nano, Sensision.getValue(cls + ".long", labels));
-    
+
     double d = Math.random();
     Sensision.set(cls + ".double", labels, d);
     Assert.assertEquals(d, (Double) Sensision.getValue(cls + ".double", labels), 0.00000000001D);
     Sensision.update(cls + ".double", labels, 0.42);
     Assert.assertEquals(d + 0.42D, (Double) Sensision.getValue(cls + ".double", labels), 0.00000000001D);
-    
+
     Sensision.set(cls + ".string", labels, "foo");
     Assert.assertEquals("foo", Sensision.getValue(cls + ".string", labels));
   }
-  
+
   @Test
   public void testParseVallue() {
     Object o = Sensision.parseValue("10.1111111111111E8");
     o = Sensision.parseValue("10.111111111E-2");
-	  
+
 	  Assert.assertTrue(o instanceof Double);
-  }  
+  }
+
+  @Test
+  public void testOpenMetricsLabelSanitization() {
+    Assert.assertEquals("\\\\hello\\nworld \\\"hi\\\"", OpenMetrics.sanitizeLabelValue("\\hello\nworld \"hi\""));
+  }
  }

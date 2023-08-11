@@ -294,7 +294,8 @@ public class QueueForwarder extends Thread {
                 // labels in lexicographic order, so deduplication can work correctly
                 //
 
-                Sensision.dumpValue(spw, value, true, false);
+                Sensision.dumpValue(spw, value, true, false, false);
+
                 spw.flush();
                 line = baos.toString("UTF-8");
                 baos.reset();
