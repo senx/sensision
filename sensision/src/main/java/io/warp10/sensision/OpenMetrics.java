@@ -17,6 +17,7 @@
 package io.warp10.sensision;
 
 import java.io.PrintWriter;
+import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -34,12 +35,33 @@ public class OpenMetrics {
 
     out.print(sanitizeClassName(name));
 
+    //
+    // Add default labels
+    //
+    boolean first = true;
+
+    for (String label: Sensision.defaultLabels.keySet()) {
+      if (!labels.containsKey(label)) {
+        if (!first) {
+          out.print(",");
+        } else {
+          out.print("{");
+        }
+        out.print(sanitizeLabelName(label));
+        out.print("=");
+        out.print("\"");
+        out.print(sanitizeLabelValue(Sensision.defaultLabels.get(label)));
+        out.print("\"");
+        first = false;
+      }
+    }
+
     if (null != labels && !labels.isEmpty()) {
-      out.print("{");
-      boolean first = true;
       for (Entry<String,String> label: labels.entrySet()) {
         if (!first) {
           out.print(",");
+        } else {
+          out.print("{");
         }
         out.print(sanitizeLabelName(label.getKey()));
         out.print("=");
@@ -48,6 +70,9 @@ public class OpenMetrics {
         out.print("\"");
         first = false;
       }
+    }
+
+    if (!first) {
       out.print("}");
     }
 
@@ -57,7 +82,7 @@ public class OpenMetrics {
       out.print(" ");
       out.print(timestamp);
     }
-    // OpenMetrics mandates that line end with a LF and no CR
+    // OpenMetrics mandates that line ends with a LF and no CR
     out.print("\n");
   }
 
