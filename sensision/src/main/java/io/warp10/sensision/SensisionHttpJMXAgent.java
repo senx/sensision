@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,18 +21,18 @@ import java.io.PrintWriter;
 import java.lang.instrument.Instrumentation;
 
 public class SensisionHttpJMXAgent extends SensisionJMXPoller {
-  
+
   private final SensisionMetricsServer dumper;
-  
+
   public SensisionHttpJMXAgent(String agentArgs, Instrumentation instrumentation) {
     super(agentArgs, instrumentation);
     final SensisionHttpJMXAgent self = this;
-    
-    dumper = new SensisionMetricsServer() {      
+
+    dumper = new SensisionMetricsServer() {
       @Override
-      public void dumpMetrics(PrintWriter out, boolean useValueTimestamp) throws IOException {
-        self.dump(out);
+      public void dumpMetrics(PrintWriter out, boolean useValueTimestamp, boolean openmetrics) throws IOException {
+        self.dump(out, openmetrics);
       }
     };
-  }    
+  }
 }
