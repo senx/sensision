@@ -129,6 +129,7 @@ public class Sensision {
   public static final String SENSISION_HTTPPOLLER_SLEEP = "sensision.poller.http.sleep";
   public static final String SENSISION_HTTPPOLLER_SCANPERIOD = "sensision.poller.http.scanperiod";
   public static final String SENSISION_HTTPPOLLER_FORCEDHINT = "sensision.poller.http.forcedhint";
+  public static final String SENSISION_HTTPPOLLER_TIMEOUT = "sensision.poller.http.timeout";
 
   public static final String SENSISION_SCRIPTRUNNER = "sensision.scriptrunner";
   public static final String SENSISION_SCRIPTRUNNER_ROOT = "sensision.scriptrunner.root";

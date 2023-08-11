@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -94,8 +94,14 @@ public class QueueForwarder extends Thread {
    */
   public static final String HTTP_BATCHSIZE = "sensision.qf.batchsize";
 
+  /**
+   * HTTP connect timeout
+   */
+  public static final String HTTP_TIMEOUT = "sensision.qf.timeout";
+
   public static final String HTTP_PROXY_HOST = "sensision.qf.proxy.host";
   public static final String HTTP_PROXY_PORT = "sensision.qf.proxy.port";
+
 
   private final File queueDir;
 
@@ -132,6 +138,8 @@ public class QueueForwarder extends Thread {
 
   private final String tokenHeader;
 
+  private final int timeout;
+
   public QueueForwarder(String queue, Properties properties) throws Exception {
     this.queue = queue;
     this.queueDir = Sensision.getQueueDir();
@@ -140,6 +148,7 @@ public class QueueForwarder extends Thread {
     this.url = new URL(properties.getProperty(HTTP_URL + "." + queue));
     this.token = properties.getProperty(HTTP_TOKEN + "." + queue);
     this.period = Long.valueOf(properties.getProperty(HTTP_PERIOD + "." + queue));
+    this.timeout = Integer.valueOf(properties.getProperty(HTTP_TIMEOUT + "." + queue, "30000"));
 
     this.deduplicationManager = new DeduplicationManager(queue,properties);
 
@@ -236,6 +245,8 @@ public class QueueForwarder extends Thread {
             conn.setRequestProperty(this.tokenHeader, this.token);
             conn.setRequestProperty("Content-Type", "application/gzip");
             conn.setChunkedStreamingMode(65536);
+            conn.setConnectTimeout(timeout);
+            conn.setReadTimeout(2 * timeout);
 
             conn.connect();
 
@@ -284,6 +295,7 @@ public class QueueForwarder extends Thread {
                 //
 
                 Sensision.dumpValue(spw, value, true, false, false);
+
                 spw.flush();
                 line = baos.toString("UTF-8");
                 baos.reset();

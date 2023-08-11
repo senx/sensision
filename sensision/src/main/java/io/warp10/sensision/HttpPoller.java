@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ import java.util.regex.Matcher;
 
 /**
  * Periodically scan a directory for a list of targets.
- * 
+ *
  * Periodically poll the said targets and store the retrieved
  * metrics into the 'queued' directory.
  */
@@ -52,7 +52,8 @@ public class HttpPoller extends Thread {
   private static final String DEFAULT_HTTPPOLLER_SLEEP = "10000";
   private static final String DEFAULT_HTTPPOLLER_SCANPERIOD = "60000";
   private static final String DEFAULT_HTTPPOLLER_FORCEDHINT = "0";
-  
+  private static final String DEFAULT_HTTPPOLLER_TIMEOUT = "5000";
+
   /**
    * How long to sleep between two pollables scan
    */
@@ -62,14 +63,14 @@ public class HttpPoller extends Thread {
    * How often to scan the 'targets' directory.
    */
   private final long scanPeriod;
-  
+
   /**
    * Forced value of polling hint, if 0, use the hint given by the target
    */
   private final long forcedhint;
-  
+
   private final ExecutorService executor;
-  
+
   /**
    * Map of ports to registration file
    */
@@ -79,7 +80,7 @@ public class HttpPoller extends Thread {
    * Map of ports to last event
    */
   private Map<Integer, Long> lastevents = new HashMap<Integer, Long>();
-  
+
   /**
    * Polling periodicity of each port
    */
@@ -89,33 +90,39 @@ public class HttpPoller extends Thread {
    * Should we display which urls Sensision Service should poll
    */
   private final boolean urlDebug;
-  
+
+  /**
+   * Connection timeout for HTTP connections
+   */
+  private final int connectTimeout;
+
   public HttpPoller(Properties config) {
-        
+
     this.sleep = Long.valueOf(config.getProperty(Sensision.SENSISION_HTTPPOLLER_SLEEP, DEFAULT_HTTPPOLLER_SLEEP));
     this.scanPeriod = Long.valueOf(config.getProperty(Sensision.SENSISION_HTTPPOLLER_SCANPERIOD, DEFAULT_HTTPPOLLER_SCANPERIOD));
     this.forcedhint = Long.valueOf(config.getProperty(Sensision.SENSISION_HTTPPOLLER_FORCEDHINT, DEFAULT_HTTPPOLLER_FORCEDHINT));
     this.executor = new ThreadPoolExecutor(2, 16, 2 * sleep, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(1024));
     this.urlDebug = Boolean.valueOf(config.getProperty(Sensision.SENSISION_URLDEBUG, Sensision.DEFAULT_SENSISION_URLDEBUG));
+    this.connectTimeout = Integer.valueOf(config.getProperty(Sensision.SENSISION_HTTPPOLLER_TIMEOUT, DEFAULT_HTTPPOLLER_TIMEOUT));
 
     this.setDaemon(true);
     this.setName("[Sensision HttpPoller]");
     this.start();
   }
-  
+
   @Override
   public void run() {
-      
+
     //
     // Map of port to next scheduled run
     //
-    
+
     final Map<Integer,Long> nextpoll = new HashMap<Integer,Long>();
-    
+
     //
     // Priority queue of pollables ports
     //
-    
+
     PriorityQueue<Integer> pollables = new PriorityQueue<Integer>(1, new Comparator<Integer>() {
       @Override
       public int compare(Integer o1, Integer o2) {
@@ -132,7 +139,7 @@ public class HttpPoller extends Thread {
     });
 
     long lastscan = 0L;
-    
+
     while(true) {
       long now = System.currentTimeMillis();
 
@@ -144,25 +151,25 @@ public class HttpPoller extends Thread {
       long sleepuntil = lastscan + this.scanPeriod;
 
       //
-      // Find port to poll next, class them 
+      // Find port to poll next, class them
       //
-    
+
       pollables.clear();
 
       Set<Integer> knownPorts = new HashSet<Integer>();
-      
+
       synchronized(ports) {
         knownPorts.addAll(ports.keySet());
       }
-      
+
       for (int port: knownPorts) {
 
         //
         // If port has no scheduled poll yet or should be polled immediately, select it
         //
-        
+
         Long schedule = nextpoll.remove(port);
-        
+
         if (null == schedule || schedule < now) {
           pollables.add(port);
         } else if (null != schedule) {
@@ -182,14 +189,14 @@ public class HttpPoller extends Thread {
         nextpoll.put(port, System.currentTimeMillis() + periodicities.get(port));
 
         final int tcpport = port;
-        
+
         this.executor.submit(new Callable<Boolean>() {
           @Override
           public Boolean call() throws Exception {
             //
             // Call endpoint
             //
-            
+
             URL url = new URL("http://127.0.0.1:" + tcpport + "/metrics");
 
             if (urlDebug) {
@@ -197,34 +204,36 @@ public class HttpPoller extends Thread {
             }
 
             HttpURLConnection conn = null;
-            
+
             try {
               conn = (HttpURLConnection) url.openConnection();
+              conn.setConnectTimeout(connectTimeout);
+              conn.setReadTimeout(2 * connectTimeout);
             } catch (IOException ioe) {
               return false;
             }
-            
+
             File outfile = null;
             boolean hasContent = false;
             String newname = null;
-            
+
             try {
               InputStream is = conn.getInputStream();
 
               if (200 != conn.getResponseCode()) {
                 is.close();
                 return false;
-              }            
-              
+              }
+
               String uuid = conn.getHeaderField(Sensision.HTTP_HEADER_UUID);
               String ts = conn.getHeaderField(Sensision.HTTP_HEADER_TIMESTAMP);
-              
+
               //BufferedReader br = new BufferedReader(new InputStreamReader(is));
-              
+
               //
               // Create outfile
               //
-              
+
               StringBuilder sb = new StringBuilder();
               long now = System.currentTimeMillis();
               sb.append(Long.toHexString(Long.MAX_VALUE - now));
@@ -233,74 +242,76 @@ public class HttpPoller extends Thread {
               sb.append(".");
               sb.append(uuid);
               sb.append(Sensision.SENSISION_METRICS_SUFFIX);
-              
+
               newname = sb.toString();
-              
+
               outfile = new File(Sensision.getQueueDir(), sb.toString() + ".new");
               OutputStream os = new FileOutputStream(outfile);
               byte[] buf = new byte[8192];
-              
+
               while(true) {
                 int len = is.read(buf);
-                
+
                 if (len < 0) {
                   break;
                 }
-                
+
                 os.write(buf, 0, len);
                 hasContent = true;
-              }              
-              
+              }
+
               is.close();
               os.close();
 
               //
               // Retrieve events
               //
-              
+
               if (lastevents.containsKey(tcpport)) {
                 url = new URL("http://127.0.0.1:" + tcpport + "/events?" + SensisionMetricsServer.SENSISION_SERVER_LASTEVENT_PARAM + "=" + lastevents.get(tcpport));
               } else {
                 url = new URL("http://127.0.0.1:" + tcpport + "/events");
               }
-              
+
               conn = null;
-              
+
               try {
                 conn = (HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(connectTimeout);
+                conn.setReadTimeout(2 * connectTimeout);
               } catch (IOException ioe) {
                 return false;
               }
-              
+
               is = conn.getInputStream();
 
               if (200 != conn.getResponseCode()) {
                 is.close();
                 return false;
-              }            
-              
+              }
+
               String lastevent = conn.getHeaderField(Sensision.HTTP_HEADER_LASTEVENT);
-                            
+
               os = new FileOutputStream(outfile, true);
-              
+
               while(true) {
                 int len = is.read(buf);
-                
+
                 if (len < 0) {
                   break;
                 }
-                
+
                 os.write(buf, 0, len);
                 hasContent = true;
-              }              
-              
+              }
+
               is.close();
               os.close();
 
               if (null != lastevent) {
                 try {
                   lastevents.put(tcpport, Long.parseLong(lastevent));
-                } catch (NumberFormatException nfe) {                  
+                } catch (NumberFormatException nfe) {
                 }
               }
             } catch (IOException ioe) {
@@ -322,30 +333,30 @@ public class HttpPoller extends Thread {
               if (periodicities.containsKey(port)) {
                 nextpoll.put(port, System.currentTimeMillis() + periodicities.get(port));
               }
-              
+
               if (hasContent && null != outfile) {
                 // Atomically rename outfile to remove the ".new" suffix
                 outfile.renameTo(new File(Sensision.getQueueDir(), newname));
-              } else if (null != outfile) { 
+              } else if (null != outfile) {
                 outfile.delete();
               }
             }
-                        
+
             return true;
           }
         });
       }
-      
+
       try {
         long sleeptime = sleepuntil - System.currentTimeMillis();
         if (sleeptime > 0) {
           Thread.sleep(sleeptime);
         }
-      } catch (InterruptedException ie) {        
+      } catch (InterruptedException ie) {
       }
     }
   }
-  
+
   private void getTargets() {
     final File targetsDir = Sensision.getTargetsDir();
 
@@ -406,19 +417,19 @@ public class HttpPoller extends Thread {
 
     this.ports = newports;
     this.periodicities = newperiodicities;
-    
+
     //
     // Remove orphaned lastevents
     //
-    
+
     Set<Integer> orphaned = new HashSet<Integer>();
-    
+
     for (int port: this.lastevents.keySet()) {
       if (!this.ports.containsKey(port)) {
         orphaned.add(port);
       }
     }
-    
+
     for (int port: orphaned) {
       this.lastevents.remove(port);
     }
