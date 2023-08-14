@@ -43,23 +43,10 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            when {
-                expression { return isItATagCommit() }
-            }
-            parallel {
-                stage('Deploy to Bintray') {
-                    options {
-                        timeout(time: 2, unit: 'HOURS')
-                    }
-                    input {
-                        message 'Should we deploy to Bintray?'
-                    }
-                    steps {
-                        sh './gradlew bintray'
-                        this.notifyBuild('PUBLISHED', version)
-                    }
-                }
+        stage('Tar') {
+            steps {
+                sh "./gradlew createTarArchive -x test"
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'sensision/build/libs/*.tar.gz', fingerprint: true
             }
         }
     }

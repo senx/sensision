@@ -16,16 +16,9 @@
 
 import java.text.SimpleDateFormat
 
-buildscript {
-  repositories {
-    jcenter()
-  }
-}
-
 plugins {
   id 'java'
   id 'eclipse'
-  id "com.jfrog.bintray" version "1.7.3"
 }
 
 // ------------------------------------------------------------------
@@ -120,11 +113,11 @@ subprojects {
 
     gradle.taskGraph.whenReady { graph ->
       println "building sensision version=$version"
-      if (graph.hasTask(uploadArchives) || graph.hasTask(bintrayUpload)) {
-        if (!isGitRepoSynced()) {
+//     if (graph.hasTask(uploadArchives) || graph.hasTask(bintrayUpload)) {
+    /*    if (!isGitRepoSynced()) {
           throw new GradleException("Cannot upload archive: local repo contains uncommited files (git status -u no --porcelain)")
-        }
-      }
+        }*/
+   //   }
 
     }
   }
@@ -255,7 +248,7 @@ project(':sensision') {
     }
   }
 
-  bintray {
+/*  bintray {
     user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
     key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
 
@@ -277,7 +270,7 @@ project(':sensision') {
   }
 
   bintrayUpload.dependsOn createTarArchive
-  uploadArchives.dependsOn sensisionService
+  uploadArchives.dependsOn sensisionService*/
 }
 
 project(':sensision-lib') {
