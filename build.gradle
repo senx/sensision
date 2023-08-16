@@ -286,7 +286,12 @@ project(':sensision-lib') {
     }
 
     from project(":sensision").sourceSets.main.output
-    include 'io/warp10/sensision/**'
+    include 'io/warp10/sensision/Sensision**'
+    include 'io/warp10/sensision/OpenMetrics**'
+    include 'io/warp10/sensision/hadoop/**'
+    include 'io/warp10/sensision/kafka/**'
+    include 'io/warp10/sensision/yammermetrics/**'
+
   }
 
   task sensisionLib(type: Jar, dependsOn: jar) {
@@ -306,7 +311,11 @@ project(':sensision-lib') {
         jarjar(jarfile: archivePath, manifest: "${buildDir}/MANIFEST.MF") {
 
           zipfileset(src: jar.archivePath) {
-            include(name: 'io/warp10/sensision/**')
+            include(name: 'io/warp10/sensision/Sensision**')
+            include(name: 'io/warp10/sensision/OpenMetrics**')
+            include(name: 'io/warp10/sensision/hadoop/**')
+            include(name: 'io/warp10/sensision/kafka/**')
+            include(name: 'io/warp10/sensision/yammermetrics/**')
           }
 
           //
