@@ -517,7 +517,7 @@ public class Sensision {
     Value container = getContainer(cls, labels, value);
 
     // null container means we actually removed a Value so return immediately
-    if (null == container) {
+    if (null == container || null == value) {
       return;
     }
 
