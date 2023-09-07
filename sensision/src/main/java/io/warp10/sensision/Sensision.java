@@ -1195,10 +1195,10 @@ public class Sensision {
   private static final Pattern STRING_VALUE_RE = Pattern.compile("^['\"].*['\"]$");
   private static final Pattern BOOLEAN_VALUE_RE = Pattern.compile("^(T|F|true|false)$", Pattern.CASE_INSENSITIVE);
   private static final Pattern LONG_VALUE_RE = Pattern.compile("^[+-]?[0-9]+$");
-  private static final Pattern DOUBLE_VALUE_RE = Pattern.compile("^[+-]?([0-9]+)\\.([0-9]+)(E\\-?[0-9]+)?$");
+  private static final Pattern DOUBLE_VALUE_RE = Pattern.compile("^[+-]?([0-9]+)\\.([0-9]+)([Ee][+-]?[0-9]+)?$");
 
   /**
-   * Parses a value. This methode is borrowed from continuum's GTSHelper#parseValue
+   * Parses a value. This method is borrowed from continuum's GTSHelper#parseValue
    * @param valuestr
    * @return
    */
